@@ -1,5 +1,6 @@
 """Synthetic contradiction‑rich KB generator."""
 import random, torch
+import builtins # Import the builtins module
 from torch.nn import functional as F
 
 N_ATOMS = 10
@@ -25,8 +26,10 @@ def _encode(kb, q):
         b_target = 0.0
     
     # Apply label noise
-    g = min(max(random.gauss(g_target, LABEL_NOISE), 0), 1)
-    b = min(max(random.gauss(b_target, LABEL_NOISE), 0), 1)
+    g_val = random.gauss(g_target, LABEL_NOISE)
+    g = builtins.min(builtins.max(g_val, 0), 1) # Use builtins.min and builtins.max
+    b_val = random.gauss(b_target, LABEL_NOISE)
+    b = builtins.min(builtins.max(b_val, 0), 1) # Use builtins.min and builtins.max
     return torch.tensor([g, b])
 
 def build_split(n_samples: int):
