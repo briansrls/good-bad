@@ -1,0 +1,18 @@
+# Python bytecode and cache
+__pycache__/
+*.pyc
+
+# Virtual Environment
+.venv/
+
+# Output directory for runs and models
+runs/
+
+# Distribution / packaging (good practice with setup.py)
+build/
+dist/
+*.egg-info/
+
+# OS-specific files
+.DS_Store
+Thumbs.db 
