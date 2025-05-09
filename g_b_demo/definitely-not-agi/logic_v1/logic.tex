@@ -1,0 +1,252 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{hyperref}
+\geometry{margin=1in}
+\onehalfspacing
+
+\title{A Friendly Introduction to Logic and the Number Line:\\
+From ``Good/Bad'' Labeling to Grains of Rice}
+\author{Brian Searls\\\href{https://github.com/briansrls}{https://github.com/briansrls}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This paper offers an approachable explanation of what logic is and how
+it underpins our idea of the number line. We treat logic as a system
+for labeling statements as ``good'' (true, acceptable) or ``bad''
+(false, unacceptable). We then connect this view to how we think about
+numbers: from counting identical items (natural numbers), through
+partial truths (decimals or fractions), and into the realm of debts
+of truth (negative numbers). Grains of rice serve as a running analogy
+to keep things down-to-earth.
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+\label{sec:intro}
+
+\subsection{Why Talk About Logic and Numbers Together?}
+Logic is often described as the study of how we decide if a statement is
+true or false. Meanwhile, numbers help us describe how many grains of rice
+we have, how much water is in a cup, or how far we are from a certain point.
+At first glance, these sound like separate topics. However, many philosophers
+and mathematicians have argued that \emph{numbers grow out of logic}:
+\begin{itemize}
+  \item Counting objects is like piling up a series of ``true'' statements:
+  ``This is one grain, here's another, now we have two,'' and so on.
+  \item Handling fractions involves \emph{partial} truths, such as deciding
+  that two halves really do make a whole (by agreement).
+  \item Negative numbers let us speak of a ``lack'' or ``debts'' of something,
+  as though we owe grains of rice to someone else and must keep track of that
+  deficit.
+\end{itemize}
+
+In this paper, we'll give an informal, intuitive account of how logic and
+numbers are connected, using a few examples that (we hope) are easy to visualize.
+
+\section{Logic as Labeling Statements: ``Good'' vs. ``Bad''}
+\label{sec:logic-good-bad}
+
+\subsection{Binary Truth Values}
+Classical logic usually works with two truth values:
+\[
+\textbf{True} \quad (\text{T}) \quad \leftrightarrow \quad 
+\text{``Good/Acceptable''}
+\]
+\[
+\textbf{False} \quad (\text{F}) \quad \leftrightarrow \quad 
+\text{``Bad/Unacceptable''}
+\]
+A statement labeled \emph{true} is one we believe does not contradict any
+other statement we've accepted as true. By contrast, if a statement is
+labeled \emph{false}, we discard it as inconsistent with our accepted
+facts or rules.
+
+\subsection{Consistency and the Law of Noncontradiction}
+The main rule that keeps logic consistent is:
+\[
+\text{``Do not accept a statement as both true and false 
+   at the same time.''}
+\]
+This principle, called the \textbf{Law of Noncontradiction}, helps us avoid
+the problem that anything could be ``proved'' once a contradiction is
+accepted. If logic is our labeling system, then once a statement is labeled
+``true,'' we don't want it also labeled ``false'' within the same system.
+
+\subsection{Changing Perspectives, Same Underlying Discipline}
+Even though different people might \emph{want} different statements to be
+labeled ``true'' or ``false,'' the logical framework stays the same:
+we only require that each person or group be \emph{consistent} in their
+labeling. For example, one chef may say, ``These 100 grains of rice are
+all high-quality (true), and the rest are bad (false).'' Another chef
+may choose a different threshold for ``good'' quality. As long as neither
+chef ends up calling the same grain both good and bad, they respect
+the Law of Noncontradiction.
+
+\section{Numbers: A Logical View with Grain-of-Rice Examples}
+\label{sec:numbers}
+
+\subsection{Natural Numbers: Counting Grain by Grain}
+\subsubsection{``Fungible'' Truths}
+When we say we have $1$ grain of rice, we are basically labeling:
+\[
+\text{``Here is 1 grain of rice.''} \quad (\text{true})
+\]
+If we pick up a second grain, we have:
+\[
+\text{``Here is another grain of rice.''} \quad (\text{true})
+\]
+From a logical perspective, the \emph{idea} of counting is to combine
+multiple distinct but \emph{equally true} statements:
+\[
+1 + 1 + 1 + \dots
+\]
+We ignore that the grains might differ in shape or color; for counting
+purposes, we treat them as \emph{fungible} (interchangeable) truths.
+That yields the natural numbers $\{1, 2, 3, \ldots\}$: 
+``1 grain, 2 grains, 3 grains, and so on.''
+
+\subsubsection{Zero: ``Nothing in the Bag''}
+When a bag is empty, we say there are $\textbf{0}$ grains inside. Logically,
+this corresponds to saying: \emph{``There are no true statements of the
+form `Here is a grain' inside this bag.''}
+
+\subsection{Decimals and Fractions: Partial Truths}
+\subsubsection{Half a Grain of Rice}
+Imagine you cut a single grain into two (approximately equal) pieces. Now
+you might label each piece as ``$0.5$ of a grain.'' In everyday usage,
+two such halves make ``a full grain.'' Thus, a \emph{decimal} (or fraction)
+expresses a partial \emph{truth}:
+\[
+0.5 + 0.5 = 1.0
+\]
+We \emph{agree} (by convention) that these halves \emph{add up} to one
+whole. Of course, physically, the halves won't always be perfect, but
+this is where a shared \emph{approximation} or \emph{agreement} underlies
+our math. Logically, we decide that $0.5$ stands for ``half the usual
+mass/volume of a grain.''
+
+\subsection{Negative Numbers: Debts or ``Excess Falsehoods''}
+
+\subsubsection{Owing Grains of Rice}
+Now, imagine you borrowed 3 grains from a friend because you ran out. You
+eat them, so you no longer have any grains in your possession. But logically,
+you still \emph{owe} 3 grains. If you see your current count of grains as
+``physical plus owed,'' you can be said to have \emph{negative 3 grains},
+or $-3$. This means:
+\[
+\text{``I have a deficit of 3 grains relative to owning 0 grains.''}
+\]
+In other words, once we pass below zero, we are in the ``negative'' region,
+representing debt or a shortfall. We can think of it as having more
+``false'' (unfulfilled) statements than true ones:
+\begin{itemize}
+  \item A statement like ``I have the 3 grains to give back now'' is false.
+  \item We track these unfulfilled truths as negatives.
+\end{itemize}
+When we finally acquire 3 new grains, we can pay off the debt and return
+to zero.
+
+\subsubsection{Combining Negatives and Positives}
+If we owe 2 grains ($-2$) but then get 5 grains from somewhere else, we
+add:
+\[
+-2 + 5 = 3.
+\]
+\emph{Logically}, we first use 2 of those grains to cancel our debt, and
+then we have 3 grains left. Thus, negative numbers let us keep track of
+things that we \emph{lack}, and they obey consistent rules of adding,
+subtracting, and so forth.
+
+\section{Constructing the Number Line via Logic}
+\label{sec:num-line}
+
+Putting it all together, we can see the \textbf{number line} from negative
+to positive as a map of \emph{states} of truth about grains of rice (or
+any item):
+\begin{itemize}
+  \item \textbf{Negative region} ($-1, -2, -3, \dots$) captures \emph{owing} or
+  \emph{lacking} certain items.
+  \item \textbf{Zero} is having no items, no surplus or deficit.
+  \item \textbf{Positive region} ($1, 2, 3, \dots$) indicates how many items
+  we currently hold.
+  \item \textbf{Fractions/Decimals} fill in the partial steps along the way,
+  e.g.\ $\frac{1}{2} = 0.5$ means we have half a unit of something.
+\end{itemize}
+All of these can be built from the basic idea of labeling statements in a
+consistent way: how many full units do we have (positive), how many do
+we owe (negative), and how do we split units into fractions (decimals).
+
+\section{Tying Logic and Numbers Together}
+
+\subsection{Logic: A Master Labeling System}
+Logic itself remains the ``master'' labeling system. We have the rules of
+``true'' and ``false'' and ensure we don't accidentally assign both to
+the same statement. Whether we talk about \emph{owning}, \emph{owing},
+or \emph{splitting} grains of rice, these moves rest on consistent
+\emph{logical} rules that define what it means to add or subtract,
+to have half, or to be in debt.
+
+\subsection{Why This View Makes Sense}
+\begin{enumerate}
+  \item \textbf{Common-Sense Counting}: By ignoring physical differences in
+  grains, we are free to just count how many. That is a \emph{logical
+  simplification}.
+  \item \textbf{Fractions as Agreement}: Two halves is one whole by
+  \emph{convention}---that is a logical agreement among people, rather than
+  an inevitable truth of the universe.
+  \item \textbf{Negatives as Debts of Truth}: If you owe 3 grains, you are
+  ``under zero'' by 3. This matches everyday arithmetic: your negative
+  figure goes back to zero once you repay the grains.
+\end{enumerate}
+
+\section{Conclusion}
+By viewing logic as a way to label statements as good or bad, we open
+the door to understanding how \emph{numbers} emerge. In practice:
+\begin{itemize}
+  \item \textbf{Natural numbers} capture how many items we have---they
+  come from repeatedly affirming ``Yes, I have a grain.''
+  \item \textbf{Decimals/fractions} are partial truths---``I have 0.5
+  grains'' becomes acceptable once we agree on how halves work.
+  \item \textbf{Negative numbers} represent debt or deficits---as though
+  we owe so many grains that we are below zero until we repay them.
+\end{itemize}
+All of these ideas rely on the same foundational logic that prevents
+contradictions and keeps our labeling consistent. Whether we talk about
+owning 10 grains, owing 3, or splitting 1 grain into halves, logic
+remains the unifying system that keeps track of what is ``true''
+(what we actually have, owe, or measure) and what is ``false''
+(stating we have or owe something contradictory).
+
+\begin{thebibliography}{9}
+
+\bibitem{Boole}
+G. Boole.
+\textit{An Investigation of the Laws of Thought}.
+Walton and Maberly, 1854.
+
+\bibitem{Frege}
+G. Frege.
+\textit{The Foundations of Arithmetic}.
+1884. (Various English translations available.)
+
+\bibitem{RussellWhitehead}
+B. Russell and A. N. Whitehead.
+\textit{Principia Mathematica}.
+Cambridge University Press, 1910--1913.
+
+\bibitem{Godel}
+K. G\"odel.
+\textit{On Formally Undecidable Propositions of Principia Mathematica and Related Systems I}.
+1931. (English translation available in various collections.)
+
+\end{thebibliography}
+
+\end{document}

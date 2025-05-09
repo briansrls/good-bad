@@ -1,0 +1,307 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{lipsum}
+
+\geometry{
+  a4paper,
+  left=25mm,
+  right=25mm,
+  top=25mm,
+  bottom=25mm
+}
+
+\title{A Multi-Valued Logic of Good/Bad for AGI Applications}
+\author{Brian Searls\\\href{https://github.com/briansrls}{https://github.com/briansrls}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present a new logical framework that treats every proposition as carrying both 
+\emph{goodness} and \emph{badness} values, allowing partial overlap and thus going 
+beyond the standard true/false paradigm. We define a semantics in which each statement
+\(p\) is evaluated as a pair \((G(p), B(p))\), with \(G, B \in [0,1]\). This system 
+is capable of tolerating internal contradictions (i.e., a statement can be partly 
+good and partly bad) while still maintaining a coherent structure for inference. We 
+propose that this good/bad logic is especially relevant to artificial general intelligence (AGI), 
+where action selection and knowledge representation must often consider trade-offs, 
+ethical dimensions, and uncertainty all at once. We show how classical logic emerges 
+as a special case when \(G + B = 1\). The aim is to create a non-explosive, 
+multi-dimensional logic that can handle real-world complexity and paradox, providing a 
+potential substrate for next-generation reasoning systems in AGI.
+\end{abstract}
+
+\section{Introduction}
+
+Artificial General Intelligence (AGI) research explores creating machines that can learn 
+and reason across diverse tasks with minimal re-engineering. Traditional logical systems 
+for knowledge representation---rooted in classical logic with bivalent true/false 
+assignments---often struggle with ambiguity, ethical trade-offs, and paradox. 
+Fuzzy and probabilistic logics make partial strides, but they still tend to unify all 
+uncertainty and partial membership into a single scalar parameter.
+
+In this paper, we present an alternative approach: \emph{a multi-valued logical system} in which 
+each proposition \(p\) is assigned two real values in \([0,1]\):
+\[
+   \mathcal{V}(p) = \bigl(G(p), B(p)\bigr),
+\]
+where \(G(p)\) represents the ``goodness'' (positive survival alignment) of \(p\) 
+and \(B(p)\) represents its ``badness'' (negative survival alignment).
+Crucially, \(G\) and \(B\) can overlap and do not necessarily sum to 1, 
+yielding a paraconsistent-like framework that tolerates contradictions. 
+
+We argue that such an approach is highly relevant to AGI, where managing internal contradictions 
+and partial ethical judgments is essential. By permitting partial moral evaluations and 
+\emph{non-explosive} contradictions, we lay the foundation for more robust, context-aware, 
+and ethically informed reasoning within autonomous systems.
+
+\section{Background and Motivation}
+
+\subsection{Shortcomings of Classical Logic}
+
+Classical logic provides powerful results such as completeness and soundness, 
+but it imposes strict bivalence: every well-formed proposition is either true or false. 
+In real-world contexts involving ethical dilemmas, uncertain data, or contradictory signals, 
+this rigidity can lead to undesirable outcomes. A single contradiction often entails 
+\emph{ex contradictione sequitur quodlibet} (explosive inference), trivializing the system.
+
+\subsection{Fuzzy Logics}
+
+Fuzzy logic~\cite{zadeh1965fuzzy} addresses some limitations of classical logic by allowing degrees 
+of truth in \([0,1]\). This is valuable for modeling graded notions like ``tall'' or 
+``heavy.'' However, standard fuzzy systems unify \emph{all} partial membership into a single 
+scalar parameter, without explicitly capturing situations where something can be 
+beneficial and harmful simultaneously, each to some degree.
+
+\subsection{Why Good/Bad Dimensions?}
+
+In human cognition, concepts or actions can be both good and bad in different respects. 
+For instance, alcohol consumption might be ``relaxing'' (good) but also ``harmful to health'' 
+(bad). Instead of forcing a single net result, we propose a logic where each proposition 
+maintains its own \emph{goodness} and \emph{badness} components, with partial overlap allowed. 
+This yields:
+
+\begin{itemize}
+    \item \textbf{Tolerance for Contradiction:} Contradictions do not cause the entire logic to explode.
+    \item \textbf{Ethical Evaluations:} The additional dimension can incorporate or reflect 
+    moral/ethical values for AGI, helping guide action selection.
+    \item \textbf{Contextual Nuance:} A proposition may score moderately high in both 
+    good and bad aspects, which can be critical for complex real-world trade-offs.
+\end{itemize}
+
+\section{Syntax}
+
+We adopt a standard propositional language:
+\begin{itemize}
+    \item A countable set of propositional variables \(\{p,q,r,\dots\}\).
+    \item Logical connectives: \(\land\) (AND), \(\lor\) (OR), \(\lnot\) (NOT), and \(\to\) (IMPLIES).
+    \item Parentheses for grouping.
+\end{itemize}
+
+The system can be extended to first-order logic, but we focus here on the propositional level 
+to define the core semantics.
+
+\section{Semantics}
+
+\subsection{Valuations}
+
+Each proposition \(p\) is assigned an ordered pair
+\[
+   \mathcal{V}(p) \;=\; \bigl(G(p),\,B(p)\bigr),
+\]
+where \(G(p), B(p) \in [0,1]\). We do \emph{not} force \(G(p) + B(p) \le 1\); full overlap is allowed. 
+If one prefers to restrict overlap, the constraint \(G(p) + B(p) \le 1\) can be imposed as an additional axiom.
+
+\subsection{Connectives}
+
+We define the semantics of the connectives as follows; these are one set of design choices and 
+may be adapted to fit other use-cases:
+
+\paragraph{Negation \(\lnot p\)}
+\[
+   \mathcal{V}(\lnot p) \;=\; \bigl(B(p),\,G(p)\bigr).
+\]
+Negating a proposition flips its goodness and badness components.
+
+\paragraph{Conjunction \(p \land q\)}
+\[
+   \mathcal{V}(p \land q) \;=\;
+   \bigl(\min\{G(p), G(q)\},\;\max\{B(p), B(q)\}\bigr).
+\]
+Intuitively, for a conjunction to be ``good,'' both conjuncts must be sufficiently good, 
+hence the minimum. Any badness from either part potentially carries over, giving the maximum.
+
+\paragraph{Disjunction \(p \lor q\)}
+\[
+   \mathcal{V}(p \lor q) \;=\;
+   \bigl(\max\{G(p), G(q)\},\;\min\{B(p), B(q)\}\bigr).
+\]
+If either component is good, it elevates the disjunction's goodness. If one has low badness, 
+that helps constrain the overall badness.
+
+\paragraph{Implication \(p \to q\)}
+A common approach is to define 
+\[
+    p \to q \;\equiv\; \lnot p \;\lor\; q,
+\]
+then apply the semantics of \(\lnot\) and \(\lor\). Concretely:
+\[
+   \mathcal{V}(p \to q) 
+     = \max\bigl(\mathcal{V}(\lnot p), \,\mathcal{V}(q)\bigr)
+     = \bigl(\max\{B(p), G(q)\},\,\min\{G(p), B(q)\}\bigr).
+\]
+Alternate definitions are possible, depending on the desired behavior for implication.
+
+\section{Axioms and Inference}
+
+\subsection{Axiom Schemas}
+
+This logic is grounded in the following principles:
+
+\begin{itemize}
+    \item \textbf{Non-Explosion (Paraconsistency):} We do not enforce \((p \land \lnot p) \to q\) 
+    for arbitrary \(q\). A contradiction in some statements does \emph{not} trivialize the entire system.
+    \item \textbf{Classical Tautologies under Extremes:} If \(G(p)=1\) and \(B(p)=0\), we recover 
+    the classical notion of ``fully true,'' and classical tautologies behave accordingly.
+    \item \textbf{Excluded Middle Not Guaranteed:} We do not require \(p \lor \lnot p\) to be 
+    \((1,0)\) in all cases; partial overlap of \(p\) and \(\lnot p\) is allowed.
+\end{itemize}
+
+\subsection{Inference Rules}
+
+We can adapt common rules from natural deduction or Hilbert systems:
+
+\paragraph{Modus Ponens (Threshold-Based):}
+\[
+  \frac{p,\quad p \to q}{q}
+\]
+In a multi-valued logic, we may require thresholds:
+if \(G(p)\) and \(G(p \to q)\) both exceed some \(\alpha\), we conclude \(G(q)\) exceeds some 
+\(\alpha'\). This preserves a non-binary style of reasoning.
+
+\paragraph{Intro/Elim for \(\land\) and \(\lor\):}
+We adapt standard introduction/elimination rules for conjunctions and disjunctions, 
+but interpret them via the G--B valuations to control how partial truths and partial 
+badness propagate.
+
+\paragraph{Monotonicity:}
+If \(\mathcal{V}(p)=(g_p,b_p)\) and \(\mathcal{V}(q)=(g_q,b_q)\) with 
+\(g_p \ge g_q\) and \(b_p \le b_q\), then we can consider \(p\) 
+``at least as good (and not more bad)'' as \(q\). This allows certain 
+substitutions or inferences, depending on additional rules about partial ordering.
+
+\section{Recovering Classical Logic and Other Systems}
+
+\subsection{Classical Logic as a Subcase}
+
+If for every proposition \(p\) we force
+\[
+  G(p) \in \{0,1\}, \quad B(p) \in \{0,1\}, \quad 
+  \text{and}\quad G(p) + B(p) = 1,
+\]
+we regain bivalent truth: \((1,0)\) is ``true,'' \((0,1)\) is ``false.'' 
+Classical tautologies and contradictions then behave identically to classical logic. 
+Thus, our multi-valued system \emph{extends} classical logic rather than discarding it.
+
+\subsection{Comparison to Fuzzy Logic}
+
+If we set \(B(p)=1-G(p)\) strictly for all \(p\), then we effectively return to 
+standard one-dimensional fuzzy logic. Our system, however, is more general because 
+it decouples the goodness and badness parameters, allowing partial overlap to handle 
+cases where statements are simultaneously somewhat good and somewhat bad.
+
+\subsection{Paraconsistency}
+
+By design, the logic is paraconsistent: a single contradiction 
+\((p \land \lnot p)\) does not entail universal derivability. This is crucial for 
+real-world or AGI settings where contradictory evidence is common, yet we want 
+the system to remain useful.
+
+\section{AGI Applications}
+
+\subsection{Knowledge Representation}
+
+An AGI could store statements with valuations 
+\(\mathcal{V}(p)=(G(p), B(p))\). For instance:
+\begin{quote}
+  ``Taking Action A reduces short-term stress'' \(\rightarrow (G(A)=0.8, B(A)=0.4)\).
+\end{quote}
+The partial badness might reflect negative side effects. Rather than collapsing to a single 
+score, the system keeps both dimensions intact.
+
+\subsection{Ethical Decision-Making}
+
+Because the system explicitly encodes moral or survival relevance, it can be naturally extended 
+into a decision process. If we have multiple candidate actions \(\{A_i\}\) with respective 
+valuations \(\mathcal{V}(A_i)\), the AGI can:
+\begin{enumerate}
+  \item Compute combined valuations for potential outcomes using \(\land,\lor,\to\).
+  \item Seek actions with high overall goodness, but acceptable badness.
+  \item Update valuations over time as new evidence arrives.
+\end{enumerate}
+
+\subsection{Contradictory Evidence}
+
+Classical logic would explode or force a retraction when faced with contradictory statements. 
+Our logic permits partial overlap in the valuations and allows the system to maintain a workable 
+internal state even when not all signals align perfectly. This non-explosive nature is highly 
+desirable in large-scale, open-domain AGI systems subject to inconsistent data.
+
+\section{Extensions and Future Work}
+
+\begin{itemize}
+    \item \textbf{Quantifiers:} Extending this G--B logic to a first-order setting 
+    requires carefully defining the valuations of \(\forall x\) and \(\exists x\).
+    \item \textbf{Dynamic Updates:} A Bayesian-like mechanism could update \((G,B)\) pairs 
+    as new evidence appears, maintaining partial uncertainty and moral weighting.
+    \item \textbf{Completeness Theorems:} A formal proof system (e.g., sequent calculus) 
+    can be built, and completeness/soundness theorems established, for the semantics outlined here.
+    \item \textbf{Practical Implementations:} Benchmark tasks that compare G--B logic 
+    to classical or standard fuzzy logic would clarify the benefits and trade-offs 
+    in real AGI prototypes.
+\end{itemize}
+
+\section{Conclusion}
+
+We have introduced a \emph{good/bad} multi-valued logic that assigns every proposition two real 
+values representing goodness and badness. By allowing these values to overlap, the logic 
+supports partial contradictions and avoids the explosive problems of classical logic. 
+We have shown how standard bivalent truth emerges as a subcase of our valuations, 
+and how we might embed the system in an AGI reasoning architecture to handle complex, 
+morally nuanced domains. 
+
+This approach opens the door for more \emph{flexible} and \emph{context-aware} knowledge 
+representation, particularly relevant for ethical decision-making and robust, non-explosive 
+reasoning under contradictory inputs. Future work will involve extending the logic to 
+quantified statements and demonstrating its practical utility in simulated or real AGI 
+environments.
+
+\section*{References}
+
+\begin{thebibliography}{9}
+
+\bibitem{zadeh1965fuzzy}
+L.~A. Zadeh,
+\newblock \emph{Fuzzy sets},
+\newblock Information and Control, 8(3), 1965, pp. 338--353.
+
+\bibitem{priest2002paraconsistent}
+G.~Priest,
+\newblock \emph{Paraconsistent Logic},
+\newblock In Handbook of Philosophical Logic (2nd ed.), Kluwer, 2002, pp. 287--393.
+
+\bibitem{russell2010artificial}
+S.~Russell, P.~Norvig,
+\newblock \emph{Artificial Intelligence: A Modern Approach} (3rd ed.),
+\newblock Pearson, 2010.
+
+\end{thebibliography}
+
+\end{document}

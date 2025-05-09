@@ -1,0 +1,223 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{hyperref}
+\geometry{margin=1in}
+\onehalfspacing
+
+\title{A Short Logical Path to Modern Math:\\
+From Boolean Algebra to Calculus}
+\author{Brian Searls\\\href{https://github.com/briansrls}{https://github.com/briansrls}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document provides a concise tour of some core mathematical ideas,
+ranging from the basic laws of logic (Boolean algebra) through arithmetic,
+algebra, and the essential elements of a first course in calculus.
+At each stage, we adopt the viewpoint that logic serves as a system for
+labeling statements as ``good'' (true, acceptable) or ``bad'' (false,
+unacceptable), then show how the familiar structures of arithmetic and
+calculus can be built on top of that foundation.
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+Classical logic is often framed as assigning statements the values
+\textbf{true} or \textbf{false}. Interpreted intuitively, we can call
+true statements ``\emph{good}'' (acceptable) and false statements
+``\emph{bad}'' (unacceptable). This simple labeling framework can
+be extended step by step to create the rich structure we call
+\emph{modern mathematics}.
+
+\section{Boolean Algebra: The Rules of ``Good/Bad'' Reasoning}
+
+\subsection{Basic Operations}
+\label{sec:boolean-ops}
+Boolean algebra captures the core logical connectives using symbols
+like:
+\[
+\begin{aligned}
+P \wedge Q &: \text{AND (both must be good)} \\
+P \vee Q &: \text{OR (at least one is good)} \\
+\lnot P &: \text{NOT (the statement $P$ is bad)} \\
+P \to Q &: \text{IMPLIES (if $P$ is good, $Q$ must be good)}
+\end{aligned}
+\]
+Within Boolean algebra, each proposition $P$ is assigned a truth value
+(1 for good, 0 for bad). From here we can handle everyday logic or
+mathematical statements in a formal, consistent manner.
+
+\subsection{Consistency Principle}
+The core principle remains the \textbf{Law of Noncontradiction}: no
+statement can be both good (1) and bad (0) at the same time in the
+same context. Equivalently, $P \wedge \lnot P$ is always labeled 0.
+Everything else follows from the rule that our truth assignments must
+be consistent.
+
+\section{From Logic to Arithmetic}
+\label{sec:logic-arith}
+
+\subsection{Counting: Natural Numbers}
+Classical \emph{logicism} (Frege, Russell, etc.) showed how to build
+the \emph{natural numbers} out of pure logic. Practically:
+\begin{itemize}
+  \item Counting identical items (e.g., grains of rice) can be seen as
+  summing up many separate ``good'' instances of ``this is a grain.''
+  \item The \emph{natural numbers} $\{0,1,2,3,\dots\}$ arise by repeating
+  ``another true item'' and labeling the total.
+\end{itemize}
+
+\subsection{Negative Numbers and Zero}
+Numbers extend to the \emph{integers} $\{\dots,-2,-1,0,1,2,\dots\}$ when
+we allow for \textbf{debts of truth} or deficits. If we owe 3 grains,
+we say we have $-3$. The integer $0$ labels ``no items, no debt''
+(a neutral starting point).
+
+\subsection{Rational and Real Numbers}
+\begin{itemize}
+  \item \textbf{Rationals} (fractions) let us describe \emph{partial
+  truths}: we treat one whole unit as splittable into equal parts. 
+  Two halves (each labeled $0.5$) make a whole by consensus.
+  \item \textbf{Real numbers} fill in all the \emph{gaps} between
+  fractions, capturing limits of sequences or endless decimal expansions.
+  Logically, reals can be built via \emph{Cauchy sequences} or \emph{Dedekind
+  cuts}, each of which is a consistent labeling scheme for infinite
+  approximations.
+\end{itemize}
+Thus, from a logic-first perspective, real numbers emerge from rules
+that let us consistently talk about infinitely fine subdivisions and
+limits, ensuring no internal contradictions.
+
+\section{Algebra: Rearranging and Combining Equalities}
+\label{sec:algebra}
+
+\subsection{Basic Equations}
+Algebra deals with statements of the form ``$x + 3 = 10$'' and sees
+them as \emph{questions} about $x$. If $x + 3 = 10$ is good (true),
+then we can systematically manipulate that statement to find $x = 7$.
+\emph{Why is it valid?} Because we have rules of logic that ensure:
+\[
+\text{``If (x + 3 = 10) is good, then (x = 7) must also be good''}
+\]
+once we accept standard arithmetic rules. This is exactly the meaning
+of inference in a consistent logical framework.
+
+\subsection{Polynomials and Factorization}
+We can build polynomials, like $x^2 - 5x + 6 = 0$, and ask if there's
+a good assignment of $x$ that satisfies it. The factoring step
+\[
+x^2 - 5x + 6 \;=\; (x-2)(x-3)
+\]
+follows from arithmetic laws, ensuring we rewrite the same expression
+without contradicting any steps. So $(x=2)$ or $(x=3)$ each make the
+original equation true (good).
+
+\section{Foundations of Calculus: Limits, Derivatives, and Integrals}
+\label{sec:calculus}
+
+\subsection{Limits as Logical Approximations}
+A \textbf{limit} describes what happens to a function $f(x)$ as $x$
+approaches some value $a$. In logic terms, it's a statement about
+\emph{consistency} among infinitely many approximate claims:
+\[
+\forall \varepsilon>0,\; \exists \delta>0:
+   \text{ if } 0 < |x - a| < \delta \text{ then } |f(x) - L| < \varepsilon.
+\]
+We label a limit ``good'' if it satisfies that statement for every
+$\varepsilon>0$. If any contradiction arises (i.e., we find a case
+that violates the definition), the limit claim is false.
+
+\subsection{Derivatives: Rates of Change}
+The \textbf{derivative} $f'(a)$ is a limit describing the slope of
+$f(x)$ at $x=a$. Logically, it's a \emph{compound} statement: 
+\[
+f'(a) = \lim_{h \to 0} \frac{f(a+h) - f(a)}{h}.
+\]
+If that limit is consistent, we label it as the derivative. If it
+causes contradictory or undefined behavior (like division by zero
+that can't be resolved via a limit), we say the derivative does not
+exist there.
+
+\subsection{Integrals: Summing Infinitesimal Pieces}
+The \textbf{integral} $\int_a^b f(x)\,dx$ can be seen as an infinite
+sum of $f(x)$ values over tiny slices of $x$. We often define it as
+the limit of Riemann sums:
+\[
+\lim_{n\to\infty} \sum_{k=1}^{n} f(x_k)\,\Delta x,
+\]
+with $\Delta x = \frac{b-a}{n}$. Each term $f(x_k)\,\Delta x$ is a
+\emph{partial truth}, i.e.\ the area of a thin rectangle. If all these
+partial sums fit together consistently as $n$ grows, then the integral
+is ``good'' and well-defined. 
+
+\subsection{Fundamental Theorem of Calculus}
+The \textbf{Fundamental Theorem of Calculus} (FTC) states that
+integration and differentiation are \emph{inverse} processes, under
+certain mild conditions. Symbolically:
+\[
+\frac{d}{dx} \left( \int_{a}^{x} f(t)\,dt \right) = f(x).
+\]
+This can be seen as a major logical link between two structures
+(derivatives and integrals). Once again, it relies on consistent
+definitions of limits and sums. If any contradiction were introduced
+(e.g., summing with no coherent limit), the theorem wouldn't hold. 
+But the standard rules keep everything consistent, so the statement
+remains ``good'' in that framework.
+
+\section{Wrap-Up: The Logical Backbone of Modern Math}
+
+\subsection{From Good/Bad Labels to Broad Theories}
+We started with the idea that logic classifies statements as true/good
+or false/bad. From there, we built up:
+\begin{enumerate}
+  \item \textbf{Boolean Algebra} for combining statements consistently.
+  \item \textbf{Arithmetic} from simple counting of identical items
+  through negative numbers (debts of truth) and fractions (partial truths).
+  \item \textbf{Algebra} for rearranging good statements to solve
+  equations.
+  \item \textbf{Calculus} for studying \emph{continuous} behavior:
+  limits, derivatives, and integrals—all hinged on consistent rules that
+  define infinite processes without contradiction.
+\end{enumerate}
+
+\subsection{Why This View Helps}
+Seeing math as an extension of logic clarifies why consistency is so
+important. If we accidentally allow a contradiction, we could label
+everything as ``true,'' making math meaningless. Instead, each step must
+respect the rules (like the Law of Noncontradiction, definitions of limit,
+and so on). The result is a robust structure that powers science and
+engineering.
+
+\begin{thebibliography}{9}
+
+\bibitem{Boole}
+G. Boole.
+\textit{An Investigation of the Laws of Thought}.
+Walton and Maberly, 1854.
+
+\bibitem{Frege}
+G. Frege.
+\textit{The Foundations of Arithmetic}.
+1884. (Various editions, e.g.\ Northwestern University Press.)
+
+\bibitem{RussellWhitehead}
+B. Russell and A. N. Whitehead.
+\textit{Principia Mathematica}.
+Cambridge University Press, 1910--1913.
+
+\bibitem{Godel}
+K. G\"odel.
+\textit{On Formally Undecidable Propositions of Principia Mathematica 
+and Related Systems I}.
+1931. (English translations in many anthologies.)
+
+\end{thebibliography}
+
+\end{document}

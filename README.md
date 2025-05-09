@@ -13,7 +13,7 @@ The goal is to provide a simple, runnable starting point for experimenting with 
 ## 1. Directory Layout
 
 ```
-eor_l1_demo/
+g_b_demo/
 ├── README.md              # This quick‑start guide
 ├── .gitignore             # Specifies intentionally untracked files
 ├── environment.yml        # Conda environment specification (CPU)

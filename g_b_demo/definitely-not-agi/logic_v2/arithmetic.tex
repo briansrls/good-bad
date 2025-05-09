@@ -1,0 +1,215 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{amsmath,amssymb,amsthm,amsfonts,stmaryrd}
+
+\title{A Basic Arithmetic in Good/Bad Logic}
+\author{Brian Searls\\\href{https://github.com/briansrls}{https://github.com/briansrls}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+In prior work, we introduced a two-valued logic (G--B logic) where each proposition 
+is assigned a pair of real values
+\[
+   \mathcal{V}(\varphi) \;=\; \bigl(G(\varphi),\,B(\varphi)\bigr),
+\]
+with $G(\varphi), B(\varphi) \in [0,1]$, reflecting the \emph{goodness} and \emph{badness} of the statement. 
+Here, we extend that approach to a first-order setting with basic arithmetic over the natural numbers. 
+Our goal is to show, at a high level, how G--B valuations can carry over to standard arithmetic 
+concepts such as $0,1,+,\times$ and quantifiers $\forall,\exists$.
+
+\section{Syntax of the Theory}
+
+\subsection{Language of Arithmetic}
+
+We use a standard first-order language $\mathcal{L}_A$ with:
+\begin{itemize}
+    \item A constant symbol $0$ (zero).
+    \item A unary function symbol $S(\cdot)$ (successor).
+    \item Binary function symbols $+,\times$ (addition, multiplication).
+    \item A binary relation symbol $=$ (equality).
+    \item Logical connectives: $\land,\lor,\lnot,\to$.
+    \item Quantifiers: $\forall,\exists$.
+\end{itemize}
+
+Terms are defined as usual: 
+\[
+  t ::= 0 \;\mid\; S(t) \;\mid\; t + t \;\mid\; t \times t \;\mid\; x_i,
+\]
+where $x_i$ are variables. Formulas are built from atomic formulas like $t_1 = t_2$ using 
+$\land,\lor,\lnot,\to,\forall,\exists$.
+
+\section{Semantics with G--B Valuations}
+
+We assume a domain $\mathcal{D}$ (for concreteness, $\mathcal{D} = \mathbb{N}$). 
+Each function symbol is interpreted in the usual way over $\mathbb{N}$:
+\[
+   0^\mathcal{D} = 0,\quad
+   S^\mathcal{D}(n) = n+1,\quad
+   +^\mathcal{D} = \text{standard addition},\quad
+   \times^\mathcal{D} = \text{standard multiplication}.
+\]
+The crux is how to \emph{assign good/bad values to formulas}. Let $\varphi$ be a formula. 
+We define $\mathcal{V}(\varphi) = (G(\varphi), B(\varphi))$ as follows:
+
+\subsection{Base Case: Atomic Formulas}
+
+An atomic formula has the form $t_1 = t_2$, where $t_1,t_2$ are terms. 
+Compute their standard interpretation in $\mathbb{N}$:
+\[
+  \llbracket t_i \rrbracket \in \mathbb{N}.
+\]
+Then define a \emph{goodness} measure $G(t_1 = t_2)$ and \emph{badness} measure $B(t_1 = t_2)$ 
+based on whether they coincide numerically. For a simple version:
+\[
+  G(t_1 = t_2) = 
+     \begin{cases}
+       1, & \text{if } \llbracket t_1 \rrbracket = \llbracket t_2 \rrbracket, \\
+       0, & \text{otherwise},
+     \end{cases}
+  \quad\text{and}\quad
+  B(t_1 = t_2) = 
+     \begin{cases}
+       0, & \text{if } \llbracket t_1 \rrbracket = \llbracket t_2 \rrbracket, \\
+       1, & \text{otherwise}.
+     \end{cases}
+\]
+This \emph{mirrors classical equality} (true/false) but in G--B form. 
+If you want partial matches (e.g., approximate arithmetic), you could define 
+$G$ and $B$ differently (for instance, using $| \llbracket t_1 \rrbracket - \llbracket t_2 \rrbracket |$).
+
+\subsection{Compound Formulas (No Quantifiers)}
+
+Use the same definitions as in G--B propositional logic:
+\[
+  \mathcal{V}(\lnot \varphi) = (B(\varphi),\, G(\varphi)),
+\]
+\[
+  \mathcal{V}(\varphi \land \psi)
+    = \bigl(\min\{G(\varphi),G(\psi)\},\,\max\{B(\varphi),B(\psi)\}\bigr),
+\]
+\[
+  \mathcal{V}(\varphi \lor \psi)
+    = \bigl(\max\{G(\varphi),G(\psi)\},\,\min\{B(\varphi),B(\psi)\}\bigr),
+\]
+\[
+  \mathcal{V}(\varphi \to \psi)
+    = \mathcal{V}(\lnot \varphi \;\lor\; \psi).
+\]
+
+\subsection{Quantifiers}
+
+For a formula $\forall x\, \varphi(x)$, we want to aggregate the G--B values of all 
+instances $\varphi(n)$ for $n \in \mathbb{N}$. A simple aggregator is:
+\[
+  G(\forall x\, \varphi(x)) \;=\; 
+   \min_{n \in \mathbb{N}} \; G(\varphi(n)),
+  \quad
+  B(\forall x\, \varphi(x)) \;=\;
+   \max_{n \in \mathbb{N}} \; B(\varphi(n)).
+\]
+That is, the statement ``$\varphi(x)$ holds for all $x$'' is \emph{fully good} 
+only if $G(\varphi(n))$ is high for \emph{every} $n$, 
+and it is \emph{somewhat bad} if $B(\varphi(n))$ is high for \emph{any} $n$. 
+
+Similarly, for $\exists x\, \varphi(x)$, a natural aggregator would be:
+\[
+  G(\exists x\, \varphi(x)) \;=\; 
+   \max_{n \in \mathbb{N}} \; G(\varphi(n)),
+  \quad
+  B(\exists x\, \varphi(x)) \;=\;
+   \min_{n \in \mathbb{N}} \; B(\varphi(n)).
+\]
+We deem an existential statement good if \emph{some} instance has high goodness, 
+and we consider it bad if \emph{all} instances have high badness. 
+(You can choose alternative aggregation schemes depending on philosophical or practical needs.)
+
+\section{Arithmetic Axioms in G--B Form}
+
+We can incorporate standard Peano-like axioms, now interpreted in G--B style. For example:
+
+\begin{enumerate}
+  \item \textbf{Zero is not the successor of any number:} 
+  \[
+    \forall x\, (S(x) = 0) \quad \text{(should be ``bad'')} 
+  \]
+  implies $G(\forall x\, S(x)=0)$ is $0$ in classical arithmetic, 
+  $B(\forall x\, S(x)=0)$ is $1$, reflecting that the statement is false for all $x$.
+
+  \item \textbf{Successor injectivity:} 
+  \[
+    \forall x \forall y\, \bigl( S(x)=S(y) \to x=y \bigr).
+  \]
+  Under the aggregator definitions, $G$ of this formula depends on 
+  whether the statement holds for all $x,y$ in $\mathbb{N}$.
+
+  \item \textbf{Commutativity of $+$:}
+  \[
+    \forall x \forall y\, (x + y = y + x).
+  \]
+  If classical arithmetic is correct, we expect $G(\forall x\forall y\, x+y=y+x)=1$ 
+  and $B(\forall x\forall y\, x+y=y+x)=0$, 
+  because it indeed holds for \emph{every} pair $x,y$ in $\mathbb{N}$.
+
+  \item \textbf{Induction Schema:}
+  Typically, we have:
+  \[
+    \bigl[\varphi(0) \land \forall x\,(\varphi(x)\to \varphi(S(x)))\bigr]
+    \;\to\; \forall x\, \varphi(x).
+  \]
+  In G--B logic, each piece is assigned a $(G,B)$ pair, 
+  aggregated via $\land,\to,\forall$ as above. 
+  If induction is \emph{true} in the classical sense, we expect it to yield 
+  high $G$-values for all instances.
+\end{enumerate}
+
+\noindent
+Thus, classical arithmetic emerges as the case where these axioms 
+consistently evaluate to $(1,0)$, i.e.\ fully good and not bad at all.
+
+\section{Discussion and Future Directions}
+
+This basic arithmetic extension demonstrates how first-order statements 
+involving $0,S,+,\times$ can be assigned G--B values. The aggregator approach 
+to quantifiers---using $\min$ over $G$ and $\max$ over $B$ for universal, 
+and $\max$ over $G$, $\min$ over $B$ for existential---mimics typical 
+\emph{fuzzy} or \emph{t-norm} strategies, but preserves the possibility 
+of partial contradictions. 
+
+\begin{itemize}
+    \item \textbf{Approximate Arithmetic:} If we allow near-equalities, 
+    $G(t_1=t_2)$ might reflect how close $t_1, t_2$ are numerically, 
+    enabling a more tolerant system for real-world arithmetic or 
+    measurement-based statements.
+    \item \textbf{Lifting Classical Theorems:} Many standard results 
+    (e.g.\ the sum of angles in a triangle) could be re-expressed 
+    with G--B valuations, verifying that they still come out 
+    ``fully good'' $(1,0)$ in purely classical domains.
+    \item \textbf{Implementation in AGI:} An AGI might treat 
+    these valuations as part of a flexible knowledge base, 
+    so that even if some arithmetic statements become contradictory 
+    (due to noise or partial knowledge), the system does not explode 
+    but updates $G,B$ accordingly.
+\end{itemize}
+
+\section{Conclusion}
+
+By combining G--B logic semantics with the standard language of arithmetic, 
+we obtain a system where each formula over $\mathbb{N}$ (with $0,S,+,\times$) 
+can be assigned \emph{two} real values in $[0,1]$. The universal and existential 
+quantifiers are handled via aggregator functions (e.g.\ $\min,\max$), 
+extending the paraconsistent and multi-valued features of G--B logic 
+to statements about numbers. 
+
+Future work may explore more sophisticated assignments of $G,B$ to atomic 
+formulas (beyond strict equality), or investigate alternative aggregator 
+rules for quantifiers. Nonetheless, this draft demonstrates a feasible path 
+to unify standard arithmetic reasoning with a multi-valued, paraconsistent 
+framework that can better reflect the complexity encountered in real AI 
+applications.
+
+\end{document}
