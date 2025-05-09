@@ -1,36 +1,38 @@
 """Baseline scalar net + G/B variant in one file."""
 import torch, torch.nn as nn
+import torch.nn.functional as F # For F.binary_cross_entropy
 
 class MLP(nn.Module):
     def __init__(self, out_dim: int):
         super().__init__()
-        self.layers = nn.Sequential(
-            nn.Linear(10, 32), nn.ReLU(),
-            nn.Linear(32, 32), nn.ReLU(),
-            nn.Linear(32, out_dim), nn.Sigmoid()
-        )
+        # Using the single linear layer for this diagnostic
+        self.final_layer = nn.Linear(10, out_dim) 
+        self.sigmoid = nn.Sigmoid()
+
     def forward(self, x):
-        return self.layers(x)
+        logits = self.final_layer(x)
+        output = self.sigmoid(logits)
+        return output
 
 # Public helpers -----------------------------------------------------
 
 def make_scalar():
-    return MLP(2) # Changed to MLP(2) for Dual Scalar Model
+    return MLP(2) # Remains 2 outputs, expected to fail
 
 def make_gb():
-    return MLP(2)
+    # DIAGNOSTIC: gb_model will now have only 1 output neuron
+    return MLP(1) 
 
 # Paraconsistency‑aware loss ----------------------------------------
 
-def gb_loss(pred, targ, lam=0.2):
-    pG, pB = pred[:,0], pred[:,1]
-    tG, tB = targ[:,0], targ[:,1]
+def gb_loss(pred, targ, lam_margin=0.0, lam_confidence=0.0):
+    # pred is [batch_size, 1] from the modified make_gb
+    # targ is still [batch_size, 2]
     
-    # Add a small epsilon to pG.log() and pB.log() to prevent log(0) if predictions are exactly 0.
-    epsilon = 1e-7
+    pG_as_Nx1 = pred           # pred is already [batch_size, 1]
+    tG_as_Nx1 = targ[:,0].unsqueeze(1) # Reshape target G to [batch_size, 1]
     
-    kl_g = nn.functional.kl_div(torch.log(pG + epsilon), tG, reduction='batchmean')
-    kl_b = nn.functional.kl_div(torch.log(pB + epsilon), tB, reduction='batchmean')
+    # DIAGNOSTIC: Use Mean Squared Error loss for the G component
+    loss_g_mse = F.mse_loss(pG_as_Nx1, tG_as_Nx1, reduction='mean')
     
-    margin = lam * torch.mean((pG - pB) - (tG - tB))
-    return kl_g + kl_b + margin 
+    return loss_g_mse

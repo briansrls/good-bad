@@ -4,8 +4,8 @@ import builtins # Import the builtins module
 from torch.nn import functional as F
 
 N_ATOMS = 10
-CONTR_RATE = 0.20
-LABEL_NOISE = 0.15
+CONTR_RATE = 0.0  # DIAGNOSTIC: No contradictions
+LABEL_NOISE = 0.0 # DIAGNOSTIC: No label noise
 
 def _random_kb():
     atoms = [f"a{i}" for i in range(N_ATOMS)]
@@ -30,7 +30,7 @@ def _encode(kb, q):
     g = builtins.min(builtins.max(g_val, 0), 1) # Use builtins.min and builtins.max
     b_val = random.gauss(b_target, LABEL_NOISE)
     b = builtins.min(builtins.max(b_val, 0), 1) # Use builtins.min and builtins.max
-    return torch.tensor([g, b])
+    return torch.tensor([g, b], dtype=torch.float32) # Explicitly set dtype
 
 def build_split(n_samples: int):
     xs, ys = [], []
