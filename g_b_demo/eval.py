@@ -1,82 +1,186 @@
+import argparse
 import torch
-import matplotlib.pyplot as plt
+import yaml
 import os
-from data.generator import build_split, N_ATOMS # Import N_ATOMS if needed by models, though MLP is fixed size
-from models.gb_model import make_scalar, make_gb
+from rich.console import Console
+from data.generator import build_split, N_ATOMS # Assuming N_ATOMS is exposed
+from models.gb_model import make_gb, gb_loss # make_gb and gb_loss are needed
+import matplotlib.pyplot as plt
+import numpy as np
 
-TEST_SAMPLES = 1000
-MODEL_DIR = "runs/demo"  # Directory where models are saved
+# Load configuration
+CONFIG_PATH = 'experiments.cfg' # experiments.cfg is in the same directory as this script
+try:
+    with open(CONFIG_PATH) as f:
+        cfg = yaml.safe_load(f)
+except FileNotFoundError:
+    print(f"Error: Configuration file '{CONFIG_PATH}' not found in the current directory.")
+    print(f"Please ensure '{CONFIG_PATH}' exists alongside {__file__}")
+    exit(1)
+except yaml.YAMLError as e:
+    print(f"Error parsing {CONFIG_PATH}: {e}")
+    exit(1)
 
-# Prepare data
-# Note: build_split uses global N_ATOMS from data.generator
-x_test, y_test = build_split(TEST_SAMPLES)
+# Argument parser
+parser = argparse.ArgumentParser(description="Evaluate G/B bivalent model.")
+parser.add_argument('--model_path', type=str, default='runs/bivalent_demo/gb_bivalent_model.pth',
+                    help='Path to the trained bivalent G/B model.')
+parser.add_argument('--n_eval', type=int, default=cfg.get('n_val', 1000), # Use n_val from cfg or default
+                    help='Number of samples for evaluation.')
+args = parser.parse_args()
 
-# Initialize models
-scalar_model = make_scalar()
-gb_model = make_gb()
+# Rich console for logging
+console = Console()
 
-# Load trained model weights
-scalar_model_path = os.path.join(MODEL_DIR, 'scalar_model.pth')
-gb_model_path = os.path.join(MODEL_DIR, 'gb_model.pth')
+# Determine paths
+model_dir = os.path.dirname(args.model_path)
+kb_path = os.path.join(model_dir, 'training_kb.pt')
 
-models_loaded = False
-if os.path.exists(scalar_model_path) and os.path.exists(gb_model_path):
-    try:
-        scalar_model.load_state_dict(torch.load(scalar_model_path))
-        gb_model.load_state_dict(torch.load(gb_model_path))
-        models_loaded = True
-        print(f"Loaded trained models from {MODEL_DIR}")
-    except Exception as e:
-        print(f"Error loading models: {e}. Using randomly initialized models.")
-else:
-    print(f"Warning: Model files not found in {MODEL_DIR}. Using randomly initialized models.")
+# Load the fixed_kb used during training
+if not os.path.exists(kb_path):
+    console.log(f"[bold red]Error: Training KB not found at {kb_path}[/bold red]")
+    console.log(f"Ensure '{os.path.basename(kb_path)}' was saved in '{model_dir}' during training.")
+    exit(1)
 
-scalar_model.eval() # Set to evaluation mode
-gb_model.eval()     # Set to evaluation mode
+try:
+    loaded_fixed_kb = torch.load(kb_path)
+    console.log(f"Successfully loaded training knowledge base from {kb_path}")
+    console.log(f"Content of loaded training KB: {loaded_fixed_kb}")
+except Exception as e:
+    console.log(f"[bold red]Error loading training KB from {kb_path}: {e}[/bold red]")
+    exit(1)
 
-# Perform inference
+# Prepare evaluation data using the loaded KB
+eval_x, eval_y, _ = build_split(args.n_eval, cfg=cfg, existing_kb=loaded_fixed_kb) # The third return (kb itself) can be ignored
+
+# Load model
+if not os.path.exists(args.model_path):
+    console.log(f"[bold red]Error: Model not found at {args.model_path}[/bold red]")
+    exit(1)
+
+# Instantiate the model with the correct input dimension
+model = make_gb(input_dim=N_ATOMS)
+model.load_state_dict(torch.load(args.model_path))
+model.eval()
+
+console.log(f"Evaluating model: {args.model_path} on {args.n_eval} samples, using the KB it was trained on.")
+
 with torch.no_grad():
-    ps_dual = scalar_model(x_test)  # Dual scalar model outputs 2 values
-    pg_gb = gb_model(x_test)        # G/B model outputs 2 values
+    outputs = model(eval_x) # Raw logits, shape [N, 2]
+    
+    # Calculate overall loss on evaluation set
+    # Get loss weights from config, default to 1.0 if not present
+    good_loss_weight = cfg.get('gb_loss_good_weight', 1.0)
+    bad_loss_weight = cfg.get('gb_loss_bad_weight', 1.0)
+    eval_loss = gb_loss(outputs, eval_y, 
+                        good_weight=good_loss_weight, 
+                        bad_weight=bad_loss_weight).item()
+    
+    console.log(f"Evaluation Loss: {eval_loss:.4f}")
 
-# Calculate RMSE
-# For scalar model (dual output), compare directly with (G,B) targets
-rmse_scalar = torch.mean((ps_dual - y_test)**2).sqrt().item()
-# For G/B model, compare directly with (G,B) targets
-rmse_gb = torch.mean((pg_gb - y_test)**2).sqrt().item()
+    # Get probabilities by applying sigmoid to logits
+    probs = torch.sigmoid(outputs) # Shape [N, 2]
+    preds_goodness = (probs[:, 0] > 0.5).float()
+    preds_badness = (probs[:, 1] > 0.5).float()
 
-print(f"RMSE Dual Scalar Model: {rmse_scalar:.4f}")
-print(f"RMSE G/B Model:         {rmse_gb:.4f}")
+    targets_goodness = eval_y[:, 0]
+    targets_badness = eval_y[:, 1]
 
-# Plotting results for the G/B model
-plt.figure(figsize=(12, 5))
+    # Accuracy for goodness prediction
+    acc_goodness = (preds_goodness == targets_goodness).float().mean().item()
+    console.log(f"Accuracy for Goodness Prediction: {acc_goodness:.4f}")
 
-plt.subplot(1, 2, 1)
-plt.scatter(y_test[:,0].numpy(), pg_gb[:,0].numpy(), alpha=0.5, label='Good (G)')
-plt.scatter(y_test[:,1].numpy(), pg_gb[:,1].numpy(), alpha=0.5, label='Bad (B)', marker='x')
-plt.plot([0,1],[0,1], 'k--', alpha=0.75) # Diagonal line
-plt.xlabel('Target G/B Values')
-plt.ylabel('Predicted G/B Values (from G/B Model)')
-plt.title('G/B Model Predictions vs Targets')
-plt.legend()
-plt.grid(True)
+    # Accuracy for badness prediction
+    acc_badness = (preds_badness == targets_badness).float().mean().item()
+    console.log(f"Accuracy for Badness Prediction: {acc_badness:.4f}")
+    
+    # Overall Bivalent Accuracy (both goodness and badness must be correct)
+    correct_bivalent = ((preds_goodness == targets_goodness) & (preds_badness == targets_badness)).float().mean().item()
+    console.log(f"Overall Bivalent Accuracy (Goodness AND Badness correct): {correct_bivalent:.4f}")
 
-plt.subplot(1, 2, 2)
-# Plotting G vs B for targets and predictions of the G/B model
-plt.scatter(y_test[:,0].numpy(), y_test[:,1].numpy(), alpha=0.3, label='Target (G,B) distribution')
-plt.scatter(pg_gb[:,0].numpy(), pg_gb[:,1].numpy(), alpha=0.3, label='G/B Model (G,B) distribution', marker='x')
-plt.xlabel('Good (G) Value')
-plt.ylabel('Bad (B) Value')
-plt.xlim(0,1); plt.ylim(0,1)
-plt.plot([0,1],[1,0], 'k--', alpha=0.75) # G+B=1 line for reference
-plt.axhline(0.5, color='grey', linestyle='--', linewidth=0.5)
-plt.axvline(0.5, color='grey', linestyle='--', linewidth=0.5)
-plt.title('(G,B) Space: Targets and G/B Model Predictions')
-plt.legend()
-plt.grid(True)
+    console.log("\n--- Detailed Metrics ---")
 
-plt.tight_layout()
-plt.show()
+    # Metrics for "Goodness" aspect
+    # Samples that ARE truly good (target_goodness == 1)
+    true_good_samples_mask = (targets_goodness == 1.0)
+    if true_good_samples_mask.any():
+        avg_prob_good_when_good = probs[true_good_samples_mask, 0].mean().item()
+        console.log(f"Avg. predicted 'goodness' prob for truly Good targets: {avg_prob_good_when_good:.4f}")
+    
+    # Samples that are NOT truly good (target_goodness == 0)
+    true_not_good_samples_mask = (targets_goodness == 0.0)
+    if true_not_good_samples_mask.any():
+        avg_prob_good_when_not_good = probs[true_not_good_samples_mask, 0].mean().item()
+        console.log(f"Avg. predicted 'goodness' prob for truly Not-Good targets: {avg_prob_good_when_not_good:.4f}")
 
-if not models_loaded:
-    print("Note: Evaluation was run on randomly initialized models.") 
+    # Metrics for "Badness" aspect
+    # Samples that ARE truly bad (target_badness == 1)
+    true_bad_samples_mask = (targets_badness == 1.0)
+    if true_bad_samples_mask.any():
+        avg_prob_bad_when_bad = probs[true_bad_samples_mask, 1].mean().item()
+        console.log(f"Avg. predicted 'badness' prob for truly Bad targets: {avg_prob_bad_when_bad:.4f}")
+
+    # Samples that are NOT truly bad (target_badness == 0)
+    true_not_bad_samples_mask = (targets_badness == 0.0)
+    if true_not_bad_samples_mask.any():
+        avg_prob_bad_when_not_bad = probs[true_not_bad_samples_mask, 1].mean().item()
+        console.log(f"Avg. predicted 'badness' prob for truly Not-Bad targets: {avg_prob_bad_when_not_bad:.4f}")
+
+    # --- Plotting ---
+    console.log("\n--- Displaying Plots (close plot window to continue) ---")
+
+    # Detach tensors and move to CPU for plotting
+    targets_goodness_np = targets_goodness.cpu().numpy()
+    targets_badness_np = targets_badness.cpu().numpy()
+    probs_goodness_np = probs[:, 0].cpu().numpy()
+    probs_badness_np = probs[:, 1].cpu().numpy()
+
+    # Create a single figure with a 2x2 grid of subplots
+    fig, axs = plt.subplots(2, 2, figsize=(16, 12)) # Adjust figsize as needed
+    fig.suptitle('Bivalent Model Evaluation Plots', fontsize=16)
+
+    # Plot 1: Target Goodness vs. Predicted Goodness Probability (Top-Left)
+    ax = axs[0, 0]
+    jittered_targets_good = targets_goodness_np + np.random.normal(0, 0.02, size=targets_goodness_np.shape)
+    ax.scatter(jittered_targets_good, probs_goodness_np, alpha=0.2, s=10)
+    ax.set_xlabel("Target Goodness (0 or 1, jittered)")
+    ax.set_ylabel("Predicted Goodness Probability")
+    ax.set_title("Goodness: Target vs. Predicted Probability")
+    ax.set_yticks(np.arange(0, 1.1, 0.1))
+    ax.grid(True, linestyle='--', alpha=0.7)
+
+    # Plot 2: Target Badness vs. Predicted Badness Probability (Top-Right)
+    ax = axs[0, 1]
+    jittered_targets_bad = targets_badness_np + np.random.normal(0, 0.02, size=targets_badness_np.shape)
+    ax.scatter(jittered_targets_bad, probs_badness_np, alpha=0.2, s=10)
+    ax.set_xlabel("Target Badness (0 or 1, jittered)")
+    ax.set_ylabel("Predicted Badness Probability")
+    ax.set_title("Badness: Target vs. Predicted Probability")
+    ax.set_yticks(np.arange(0, 1.1, 0.1))
+    ax.grid(True, linestyle='--', alpha=0.7)
+
+    # Plot 3: Histograms of Predicted Goodness Probabilities (Bottom-Left)
+    ax = axs[1, 0]
+    ax.hist(probs_goodness_np[targets_goodness_np == 0], bins=np.linspace(0,1,51), alpha=0.7, label='Target Goodness = 0', density=True)
+    ax.hist(probs_goodness_np[targets_goodness_np == 1], bins=np.linspace(0,1,51), alpha=0.7, label='Target Goodness = 1', density=True)
+    ax.set_xlabel("Predicted Goodness Probability")
+    ax.set_ylabel("Density")
+    ax.set_title("Distribution of Predicted Goodness Probabilities")
+    ax.legend()
+    ax.grid(True, linestyle='--', alpha=0.7)
+    
+    # Plot 4: Histograms of Predicted Badness Probabilities (Bottom-Right)
+    ax = axs[1, 1]
+    ax.hist(probs_badness_np[targets_badness_np == 0], bins=np.linspace(0,1,51), alpha=0.7, label='Target Badness = 0', density=True)
+    ax.hist(probs_badness_np[targets_badness_np == 1], bins=np.linspace(0,1,51), alpha=0.7, label='Target Badness = 1', density=True)
+    ax.set_xlabel("Predicted Badness Probability")
+    ax.set_ylabel("Density")
+    ax.set_title("Distribution of Predicted Badness Probabilities")
+    ax.legend()
+    ax.grid(True, linestyle='--', alpha=0.7)
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96]) # Adjust layout to make space for suptitle
+    plt.show() # Display the single figure with all subplots
+    console.log(f"Displayed all plots in a single window.")
+
+console.log("\nEvaluation complete.") 

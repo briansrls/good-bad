@@ -5,29 +5,37 @@ import yaml
 import os
 from rich.console import Console
 from data.generator import build_split, N_ATOMS
-from models.gb_model import make_scalar, make_gb, gb_loss
+from models.gb_model import make_gb, gb_loss
 
 # Load configuration
+CONFIG_PATH = 'experiments.cfg' # experiments.cfg is in the same directory as this script
 try:
-    with open('experiments.cfg') as f:
+    with open(CONFIG_PATH) as f:
         cfg = yaml.safe_load(f)
 except FileNotFoundError:
-    print("Error: experiments.cfg not found. Please create it.")
+    print(f"Error: Configuration file '{CONFIG_PATH}' not found in the current directory.")
+    print(f"Please ensure '{CONFIG_PATH}' exists alongside {__file__}")
     exit(1)
 except yaml.YAMLError as e:
-    print(f"Error parsing experiments.cfg: {e}")
+    print(f"Error parsing {CONFIG_PATH}: {e}")
     exit(1)
 
 # Argument parser
-parser = argparse.ArgumentParser(description="Train baseline and G/B models.")
+parser = argparse.ArgumentParser(description="Train G/B models with bivalent output.")
 parser.add_argument('--epochs', type=int, default=cfg.get('epochs', 3), 
                     help='Number of training epochs.')
-parser.add_argument('--save', type=str, default='runs/demo', 
+parser.add_argument('--save', type=str, default='runs/bivalent_demo',
                     help='Directory to save trained models.')
 args = parser.parse_args()
 
-# Prepare data
-train_x, train_y = build_split(cfg['n_train'])
+# Ensure the save directory exists
+os.makedirs(args.save, exist_ok=True)
+
+# Initialize Rich console for logging
+console = Console()
+
+# Prepare data: generate a new KB for this training run and get it back
+train_x, train_y, fixed_kb_train = build_split(cfg['n_train'], existing_kb=None) 
 
 # --- DIAGNOSTIC PRINTS FOR train_x ---
 print(f"Shape of train_x: {train_x.shape}")
@@ -41,14 +49,21 @@ else:
     print("train_x is empty!")
 # --- END DIAGNOSTIC PRINTS ---
 
+# Save the fixed_kb used for this training run
+kb_save_path = os.path.join(args.save, 'training_kb.pt')
+try:
+    torch.save(fixed_kb_train, kb_save_path)
+    console.log(f"Saved training knowledge base to {kb_save_path}")
+    # Optional: Log the content of the saved KB for reproducibility/debugging
+    # console.log(f"Content of saved training KB: {fixed_kb_train}") 
+except Exception as e:
+    console.log(f"[bold red]Error saving training KB to {kb_save_path}: {e}[/bold red]")
+
 # val_x, val_y = build_split(cfg['n_val']) # Validation data not used in this loop, can be added later
 
 # Initialize models and optimizers
-scalar_model = make_scalar() # Still initialize for consistency, but won't train
-gb_model = make_gb()
+gb_model = make_gb(input_dim=N_ATOMS)
 
-opt_s = torch.optim.AdamW(scalar_model.parameters(), lr=cfg['lr']) # Still init for consistency
-# DIAGNOSTIC: Revert opt_g to AdamW to match minimal_pytorch_test.py
 opt_g = torch.optim.AdamW(gb_model.parameters(), lr=cfg['lr'])
 
 # --- DIAGNOSTIC: Print initial weights of gb_model final layer ---
@@ -57,53 +72,35 @@ if gb_model.final_layer.bias is not None:
     print("Initial gb_model.final_layer bias:\n", gb_model.final_layer.bias.data)
 # --- END DIAGNOSTIC ---
 
-# Rich console for logging
-console = Console()
-
-console.log(f"Starting training for {args.epochs} epochs. Models will be saved to '{args.save}'")
+console.log(f"Starting bivalent training for {args.epochs} epochs. Models will be saved to '{args.save}'")
+console.log(f"Using fixed training KB: {fixed_kb_train}") # Log which KB is being used
 
 for ep in range(args.epochs):
-    # # --- Training loop (Dual Scalar Model) --- # COMMENTED OUT FOR DIAGNOSTIC
-    # scalar_model.train()
-    # opt_s.zero_grad()
-    # scalar_outputs = scalar_model(train_x)
-    # loss_s_g = torch.nn.functional.binary_cross_entropy(scalar_outputs[:,0], train_y[:,0])
-    # loss_s_b = torch.nn.functional.binary_cross_entropy(scalar_outputs[:,1], train_y[:,1])
-    # loss_s = loss_s_g + loss_s_b
-    # loss_s.backward()
-    # opt_s.step()
-    
-    # --- Training loop (G/B Model) -------------------------
     gb_model.train()
-    gb_outputs = gb_model(train_x) # Should be [N,1]
+    gb_outputs = gb_model(train_x) # Should be [N,2]
 
-    # --- DIAGNOSTIC: Print outputs and targets for gb_model's loss ---
-    if ep < 2: # Print for first 2 epochs only to see initial state and after 1 step
-        print(f"--- Epoch {ep+1} Diagnostic for gb_model loss calculation ---")
-        print(f"  gb_outputs (predictions, first 5): {gb_outputs.detach()[:5].squeeze().tolist()}")
-        print(f"  train_y[:,0] (targets for G, first 5): {train_y[:5,0].tolist()}")
-    # --- END DIAGNOSTIC ---
+    # Get loss weights from config, default to 1.0 if not present
+    good_loss_weight = cfg.get('gb_loss_good_weight', 1.0)
+    bad_loss_weight = cfg.get('gb_loss_bad_weight', 1.0)
 
     loss_g = gb_loss(gb_outputs, train_y, 
-                       lam_margin=cfg.get('gb_loss_lambda_margin', 0.0), 
-                       lam_confidence=cfg.get('gb_loss_lambda_confidence', 0.0))
+                       good_weight=good_loss_weight,
+                       bad_weight=bad_loss_weight)
     
     opt_g.zero_grad()
     loss_g.backward()
     opt_g.step()
     
-    # --- DIAGNOSTIC: Print weights of gb_model final layer after step ---
-    if ep < 5: # Print for first 5 epochs
-        print(f"Epoch {ep+1} gb_model.final_layer weights:\n", gb_model.final_layer.weight.data)
-        if gb_model.final_layer.bias is not None:
-            print(f"Epoch {ep+1} gb_model.final_layer bias:\n", gb_model.final_layer.bias.data)
-    # --- END DIAGNOSTIC ---
-    
-    # console.log(f"Epoch {ep+1}/{args.epochs}: L_scalar={loss_s:.3f} | L_gb={loss_g:.3f}") # loss_s undefined
-    console.log(f"Epoch {ep+1}/{args.epochs}: L_gb={loss_g:.3f}") # Log only L_gb
+    if ep < 5 or ep % (args.epochs // 10 if args.epochs > 10 else 1) == 0 : # Log more frequently for short epochs
+        # Diagnostic: Print shapes and some values
+        console.log(f"Epoch {ep+1}/{args.epochs}: L_gb={loss_g.item():.4f}")
+        if ep < 2: # More detailed log for first few epochs
+            console.print(f"  gb_outputs (logits, first 3): {gb_outputs.detach()[:3].tolist()}")
+            console.print(f"  gb_outputs (probs, first 3): {torch.sigmoid(gb_outputs.detach()[:3]).tolist()}") # Apply sigmoid for interpretation
+            console.print(f"  train_y (targets, first 3): {train_y[:3].tolist()}")
 
 # Save models
-os.makedirs(args.save, exist_ok=True)
-torch.save(scalar_model.state_dict(), os.path.join(args.save, 'scalar_model.pth')) # Save scalar anyway
-torch.save(gb_model.state_dict(), os.path.join(args.save, 'gb_model.pth'))
-console.log(f"Models saved to {args.save}") 
+# os.makedirs(args.save, exist_ok=True) # Already done at the start
+model_save_path = os.path.join(args.save, 'gb_bivalent_model.pth')
+torch.save(gb_model.state_dict(), model_save_path)
+console.log(f"Bivalent model saved to {model_save_path}") 
