@@ -35,16 +35,21 @@ os.makedirs(args.save, exist_ok=True)
 console = Console()
 
 # Prepare data: generate a new KB for this training run and get it back
-train_x, train_y, fixed_kb_train = build_split(cfg['n_train'], existing_kb=None) 
+train_x, train_y, fixed_kb_train = build_split(cfg['n_train'], cfg=cfg, existing_kb=None) 
 
 # --- DIAGNOSTIC PRINTS FOR train_x ---
 print(f"Shape of train_x: {train_x.shape}")
 if train_x.numel() > 0:
     unique_train_x_rows = torch.unique(train_x, dim=0)
     print(f"Number of unique train_x rows: {unique_train_x_rows.shape[0]}")
-    print(f"Sample train_x (first 5 rows):\n{train_x[:5]}")
-    if unique_train_x_rows.shape[0] < min(N_ATOMS, cfg.get('n_train', 10)):
-        print("WARNING: Very few unique input samples! Check data generation.")
+    # Only print sample train_x if N_ATOMS is small to avoid large output
+    if N_ATOMS <= 20: 
+        print(f"Sample train_x (first 5 rows):\n{train_x[:5]}")
+    else:
+        print(f"Sample train_x (first 5 rows, first 20 features):\n{train_x[:5, :20]}")
+
+    if unique_train_x_rows.shape[0] < min(N_ATOMS, cfg.get('n_train', 10)): # This check might need adjustment if N_ATOMS is very large
+        print("WARNING: Very few unique input samples relative to N_ATOMS! Check data generation or n_train.")
 else:
     print("train_x is empty!")
 # --- END DIAGNOSTIC PRINTS ---
@@ -53,13 +58,9 @@ else:
 kb_save_path = os.path.join(args.save, 'training_kb.pt')
 try:
     torch.save(fixed_kb_train, kb_save_path)
-    console.log(f"Saved training knowledge base to {kb_save_path}")
-    # Optional: Log the content of the saved KB for reproducibility/debugging
-    # console.log(f"Content of saved training KB: {fixed_kb_train}") 
+    console.log(f"Saved training knowledge base ({len(fixed_kb_train)} items) to {kb_save_path}")
 except Exception as e:
     console.log(f"[bold red]Error saving training KB to {kb_save_path}: {e}[/bold red]")
-
-# val_x, val_y = build_split(cfg['n_val']) # Validation data not used in this loop, can be added later
 
 # Initialize models and optimizers
 gb_model = make_gb(input_dim=N_ATOMS)
@@ -67,19 +68,25 @@ gb_model = make_gb(input_dim=N_ATOMS)
 opt_g = torch.optim.AdamW(gb_model.parameters(), lr=cfg['lr'])
 
 # --- DIAGNOSTIC: Print initial weights of gb_model final layer ---
-print("Initial gb_model.final_layer weights:\n", gb_model.final_layer.weight.data)
-if gb_model.final_layer.bias is not None:
-    print("Initial gb_model.final_layer bias:\n", gb_model.final_layer.bias.data)
+# Only print if N_ATOMS (and thus hidden_dim related weights) are not excessively large
+if N_ATOMS <= 20: # Or a different threshold for hidden_dim size
+    print("Initial gb_model.final_layer weights:\n", gb_model.final_layer.weight.data)
+    if gb_model.final_layer.bias is not None:
+        print("Initial gb_model.final_layer bias:\n", gb_model.final_layer.bias.data)
+else:
+    print(f"Initial gb_model.final_layer weights shape: {gb_model.final_layer.weight.data.shape}")
+    if gb_model.final_layer.bias is not None:
+        print(f"Initial gb_model.final_layer bias shape: {gb_model.final_layer.bias.data.shape}")
 # --- END DIAGNOSTIC ---
 
 console.log(f"Starting bivalent training for {args.epochs} epochs. Models will be saved to '{args.save}'")
-console.log(f"Using fixed training KB: {fixed_kb_train}") # Log which KB is being used
+# Log only a summary of the fixed_kb_train
+console.log(f"Using fixed training KB with {len(fixed_kb_train)} items. First 3: {{k: v for i, (k, v) in enumerate(fixed_kb_train.items()) if i < 3}}")
 
 for ep in range(args.epochs):
     gb_model.train()
     gb_outputs = gb_model(train_x) # Should be [N,2]
 
-    # Get loss weights from config, default to 1.0 if not present
     good_loss_weight = cfg.get('gb_loss_good_weight', 1.0)
     bad_loss_weight = cfg.get('gb_loss_bad_weight', 1.0)
 
@@ -91,16 +98,14 @@ for ep in range(args.epochs):
     loss_g.backward()
     opt_g.step()
     
-    if ep < 5 or ep % (args.epochs // 10 if args.epochs > 10 else 1) == 0 : # Log more frequently for short epochs
-        # Diagnostic: Print shapes and some values
+    log_interval = args.epochs // 10 if args.epochs > 10 else 1
+    if ep < 5 or ep % log_interval == 0 or ep == args.epochs -1 : # Log first few, last, and interval
         console.log(f"Epoch {ep+1}/{args.epochs}: L_gb={loss_g.item():.4f}")
-        if ep < 2: # More detailed log for first few epochs
-            console.print(f"  gb_outputs (logits, first 3): {gb_outputs.detach()[:3].tolist()}")
-            console.print(f"  gb_outputs (probs, first 3): {torch.sigmoid(gb_outputs.detach()[:3]).tolist()}") # Apply sigmoid for interpretation
-            console.print(f"  train_y (targets, first 3): {train_y[:3].tolist()}")
+        if ep < 2 and N_ATOMS <=20: # Only log detailed outputs for small N_ATOMS and early epochs
+            console.print(f"  gb_outputs (logits, first 3):\n{gb_outputs.detach()[:3].tolist()}")
+            console.print(f"  gb_outputs (probs, first 3):\n{torch.sigmoid(gb_outputs.detach()[:3]).tolist()}")
+            console.print(f"  train_y (targets, first 3):\n{train_y[:3].tolist()}")
 
-# Save models
-# os.makedirs(args.save, exist_ok=True) # Already done at the start
 model_save_path = os.path.join(args.save, 'gb_bivalent_model.pth')
 torch.save(gb_model.state_dict(), model_save_path)
 console.log(f"Bivalent model saved to {model_save_path}") 

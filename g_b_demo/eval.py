@@ -1,5 +1,6 @@
 import argparse
 import torch
+import torch.nn.functional as F # For MSE and MAE
 import yaml
 import os
 from rich.console import Console
@@ -22,7 +23,7 @@ except yaml.YAMLError as e:
     exit(1)
 
 # Argument parser
-parser = argparse.ArgumentParser(description="Evaluate G/B bivalent model.")
+parser = argparse.ArgumentParser(description="Evaluate G/B bivalent model with fuzzy targets.")
 parser.add_argument('--model_path', type=str, default='runs/bivalent_demo/gb_bivalent_model.pth',
                     help='Path to the trained bivalent G/B model.')
 parser.add_argument('--n_eval', type=int, default=cfg.get('n_val', 1000), # Use n_val from cfg or default
@@ -45,7 +46,7 @@ if not os.path.exists(kb_path):
 try:
     loaded_fixed_kb = torch.load(kb_path)
     console.log(f"Successfully loaded training knowledge base from {kb_path}")
-    console.log(f"Content of loaded training KB: {loaded_fixed_kb}")
+    console.log(f"Content of loaded training KB (first few items): {{k: v for i, (k, v) in enumerate(loaded_fixed_kb.items()) if i < 3}}")
 except Exception as e:
     console.log(f"[bold red]Error loading training KB from {kb_path}: {e}[/bold red]")
     exit(1)
@@ -72,11 +73,11 @@ with torch.no_grad():
     # Get loss weights from config, default to 1.0 if not present
     good_loss_weight = cfg.get('gb_loss_good_weight', 1.0)
     bad_loss_weight = cfg.get('gb_loss_bad_weight', 1.0)
-    eval_loss = gb_loss(outputs, eval_y, 
-                        good_weight=good_loss_weight, 
-                        bad_weight=bad_loss_weight).item()
+    eval_loss_bce = gb_loss(outputs, eval_y, 
+                            good_weight=good_loss_weight, 
+                            bad_weight=bad_loss_weight).item()
     
-    console.log(f"Evaluation Loss: {eval_loss:.4f}")
+    console.log(f"Evaluation BCE Loss (Training Objective): {eval_loss_bce:.4f}")
 
     # Get probabilities by applying sigmoid to logits
     probs = torch.sigmoid(outputs) # Shape [N, 2]
@@ -85,18 +86,33 @@ with torch.no_grad():
 
     targets_goodness = eval_y[:, 0]
     targets_badness = eval_y[:, 1]
+    probs_goodness = probs[:, 0]
+    probs_badness = probs[:, 1]
 
-    # Accuracy for goodness prediction
-    acc_goodness = (preds_goodness == targets_goodness).float().mean().item()
-    console.log(f"Accuracy for Goodness Prediction: {acc_goodness:.4f}")
+    # --- MSE and MAE for fuzzy targets ---
+    mse_goodness = F.mse_loss(probs_goodness, targets_goodness).item()
+    mae_goodness = F.l1_loss(probs_goodness, targets_goodness).item() # L1 loss is MAE
+    console.log(f"Goodness Prediction MSE: {mse_goodness:.4f}, MAE: {mae_goodness:.4f}")
 
-    # Accuracy for badness prediction
-    acc_badness = (preds_badness == targets_badness).float().mean().item()
-    console.log(f"Accuracy for Badness Prediction: {acc_badness:.4f}")
+    mse_badness = F.mse_loss(probs_badness, targets_badness).item()
+    mae_badness = F.l1_loss(probs_badness, targets_badness).item()
+    console.log(f"Badness Prediction MSE: {mse_badness:.4f}, MAE: {mae_badness:.4f}")
+
+    # --- Threshold-based "Accuracy" (for a rough guide) ---
+    # Binarize fuzzy targets and predictions at 0.5 threshold
+    preds_goodness_binary = (probs_goodness > 0.5).float()
+    targets_goodness_binary = (targets_goodness > 0.5).float()
+    acc_goodness_binary = (preds_goodness_binary == targets_goodness_binary).float().mean().item()
+    console.log(f"Accuracy for Binarized Goodness (@0.5 thr): {acc_goodness_binary:.4f}")
+
+    preds_badness_binary = (probs_badness > 0.5).float()
+    targets_badness_binary = (targets_badness > 0.5).float()
+    acc_badness_binary = (preds_badness_binary == targets_badness_binary).float().mean().item()
+    console.log(f"Accuracy for Binarized Badness (@0.5 thr): {acc_badness_binary:.4f}")
     
-    # Overall Bivalent Accuracy (both goodness and badness must be correct)
-    correct_bivalent = ((preds_goodness == targets_goodness) & (preds_badness == targets_badness)).float().mean().item()
-    console.log(f"Overall Bivalent Accuracy (Goodness AND Badness correct): {correct_bivalent:.4f}")
+    correct_bivalent_binary = ((preds_goodness_binary == targets_goodness_binary) & 
+                               (preds_badness_binary == targets_badness_binary)).float().mean().item()
+    console.log(f"Overall Bivalent Binarized Accuracy (@0.5 thr): {correct_bivalent_binary:.4f}")
 
     console.log("\n--- Detailed Metrics ---")
 
@@ -132,50 +148,56 @@ with torch.no_grad():
     # Detach tensors and move to CPU for plotting
     targets_goodness_np = targets_goodness.cpu().numpy()
     targets_badness_np = targets_badness.cpu().numpy()
-    probs_goodness_np = probs[:, 0].cpu().numpy()
-    probs_badness_np = probs[:, 1].cpu().numpy()
+    probs_goodness_np = probs_goodness.cpu().numpy()
+    probs_badness_np = probs_badness.cpu().numpy()
 
     # Create a single figure with a 2x2 grid of subplots
     fig, axs = plt.subplots(2, 2, figsize=(16, 12)) # Adjust figsize as needed
-    fig.suptitle('Bivalent Model Evaluation Plots', fontsize=16)
+    fig.suptitle('Bivalent Model Evaluation (Fuzzy Targets)', fontsize=16)
 
-    # Plot 1: Target Goodness vs. Predicted Goodness Probability (Top-Left)
+    # Plot 1: Target Goodness vs. Predicted Goodness Probability
     ax = axs[0, 0]
-    jittered_targets_good = targets_goodness_np + np.random.normal(0, 0.02, size=targets_goodness_np.shape)
-    ax.scatter(jittered_targets_good, probs_goodness_np, alpha=0.2, s=10)
-    ax.set_xlabel("Target Goodness (0 or 1, jittered)")
+    # Jitter is less critical now targets are continuous, but can still help if many targets cluster.
+    # For continuous targets, direct scatter is often clear.
+    ax.scatter(targets_goodness_np, probs_goodness_np, alpha=0.2, s=10) 
+    ax.plot([0, 1], [0, 1], 'r--', alpha=0.7, label='Ideal') # Add y=x line
+    ax.set_xlabel("Target Goodness (Fuzzy)")
     ax.set_ylabel("Predicted Goodness Probability")
     ax.set_title("Goodness: Target vs. Predicted Probability")
-    ax.set_yticks(np.arange(0, 1.1, 0.1))
+    ax.set_xlim([-0.05, 1.05])
+    ax.set_ylim([-0.05, 1.05])
+    ax.legend()
     ax.grid(True, linestyle='--', alpha=0.7)
 
-    # Plot 2: Target Badness vs. Predicted Badness Probability (Top-Right)
+    # Plot 2: Target Badness vs. Predicted Badness Probability
     ax = axs[0, 1]
-    jittered_targets_bad = targets_badness_np + np.random.normal(0, 0.02, size=targets_badness_np.shape)
-    ax.scatter(jittered_targets_bad, probs_badness_np, alpha=0.2, s=10)
-    ax.set_xlabel("Target Badness (0 or 1, jittered)")
+    ax.scatter(targets_badness_np, probs_badness_np, alpha=0.2, s=10)
+    ax.plot([0, 1], [0, 1], 'r--', alpha=0.7, label='Ideal') # Add y=x line
+    ax.set_xlabel("Target Badness (Fuzzy)")
     ax.set_ylabel("Predicted Badness Probability")
     ax.set_title("Badness: Target vs. Predicted Probability")
-    ax.set_yticks(np.arange(0, 1.1, 0.1))
+    ax.set_xlim([-0.05, 1.05])
+    ax.set_ylim([-0.05, 1.05])
+    ax.legend()
     ax.grid(True, linestyle='--', alpha=0.7)
 
-    # Plot 3: Histograms of Predicted Goodness Probabilities (Bottom-Left)
+    # Plot 3: Histograms of Target vs. Predicted Goodness
     ax = axs[1, 0]
-    ax.hist(probs_goodness_np[targets_goodness_np == 0], bins=np.linspace(0,1,51), alpha=0.7, label='Target Goodness = 0', density=True)
-    ax.hist(probs_goodness_np[targets_goodness_np == 1], bins=np.linspace(0,1,51), alpha=0.7, label='Target Goodness = 1', density=True)
-    ax.set_xlabel("Predicted Goodness Probability")
+    ax.hist(targets_goodness_np, bins=np.linspace(0,1,51), alpha=0.7, label='Target Goodness Scores', density=True)
+    ax.hist(probs_goodness_np, bins=np.linspace(0,1,51), alpha=0.7, label='Predicted Goodness Probs', density=True)
+    ax.set_xlabel("Score / Probability")
     ax.set_ylabel("Density")
-    ax.set_title("Distribution of Predicted Goodness Probabilities")
+    ax.set_title("Distribution: Target Goodness vs. Prediction")
     ax.legend()
     ax.grid(True, linestyle='--', alpha=0.7)
     
-    # Plot 4: Histograms of Predicted Badness Probabilities (Bottom-Right)
+    # Plot 4: Histograms of Target vs. Predicted Badness
     ax = axs[1, 1]
-    ax.hist(probs_badness_np[targets_badness_np == 0], bins=np.linspace(0,1,51), alpha=0.7, label='Target Badness = 0', density=True)
-    ax.hist(probs_badness_np[targets_badness_np == 1], bins=np.linspace(0,1,51), alpha=0.7, label='Target Badness = 1', density=True)
-    ax.set_xlabel("Predicted Badness Probability")
+    ax.hist(targets_badness_np, bins=np.linspace(0,1,51), alpha=0.7, label='Target Badness Scores', density=True)
+    ax.hist(probs_badness_np, bins=np.linspace(0,1,51), alpha=0.7, label='Predicted Badness Probs', density=True)
+    ax.set_xlabel("Score / Probability")
     ax.set_ylabel("Density")
-    ax.set_title("Distribution of Predicted Badness Probabilities")
+    ax.set_title("Distribution: Target Badness vs. Prediction")
     ax.legend()
     ax.grid(True, linestyle='--', alpha=0.7)
 
