@@ -1,0 +1,132 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Prevent scrollbars if canvas is exact fit */
+    background-color: #23272A; /* Base dark color for the entire page */
+    color: #E0E0E0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Removed header, main, footer styles as elements are gone */
+
+#canvas-container {
+    width: 100%;
+    height: 100%;
+    display: flex; /* Not strictly necessary if canvas fills it, but good practice */
+    justify-content: center;
+    align-items: center;
+    position: absolute; /* Take up full space */
+    top: 0;
+    left: 0;
+    z-index: 1; /* Canvas behind controls */
+}
+
+#canvas-container canvas {
+    display: block; /* Removes extra space if any */
+    /* width and height will be set by p5.js to fill window */
+}
+
+/* Removed #concept-explanation styles */
+
+#controls-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px 0px; /* Padding top/bottom, horizontal managed by content */
+    background-color: rgba(35, 39, 42, 0.85); /* Semi-transparent dark background */
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.4);
+    z-index: 10; /* Controls on top of canvas */
+    display: flex;
+    justify-content: center; /* Center slider groups */
+    align-items: center;
+    gap: 30px; /* Space between slider groups */
+    flex-wrap: wrap; /* Allow controls to wrap on smaller screens */
+}
+
+.slider-group, .control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center labels and sliders/buttons within the group */
+    min-width: 180px; /* Adjusted min-width */
+    margin-bottom: 10px; /* Add some margin for wrapped items */
+}
+
+.slider-group p { /* Slider labels */
+    color: #DCDDDE;
+    font-size: 0.9em;
+    margin: 0 0 8px 0; /* Margin below label */
+    text-align: center;
+}
+
+.slider-group input[type="range"] {
+    width: 100%; /* Slider takes full width of its group */
+    max-width: 250px; /* Max width for a slider */
+    /* display: block; /* Default for input is inline-block or inline */
+    /* margin: 0 auto; /* Center if it was block */
+}
+
+.control-group button {
+    padding: 10px 25px;
+    border: none;
+    border-radius: 5px;
+    background-color: #7289DA; /* Discord blurple */
+    color: white;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+}
+
+.control-group button:hover {
+    background-color: #677bc4; /* Slightly darker blurple on hover */
+}
+
+.control-group button:active {
+    background-color: #5865a2;
+    transform: translateY(1px);
+}
+
+/* Custom dark theme for range sliders (retained from previous, minor tweaks if needed) */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 7px;
+    background: #202225; /* Dark track */
+    outline: none;
+    opacity: 0.85;
+    transition: opacity .2s;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+input[type="range"]:hover {
+    opacity: 1;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #7289DA; /* Discord blurple thumb */
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid #36393F; /* Border matching a slightly lighter dark tone */
+    box-shadow: 0 0 4px rgba(114, 137, 218, 0.6);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 16px; 
+    height: 16px;
+    background: #7289DA;
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid #36393F;
+    box-shadow: 0 0 4px rgba(114, 137, 218, 0.6);
+}
+
+/* Removed generic button styles as they are not currently used */ 
