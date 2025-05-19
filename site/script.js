@@ -21,7 +21,7 @@ const BOUNCE_FACTOR = -0.6; // How much velocity is reversed on bounce
 const SCREEN_CENTER_PULL_STRENGTH = 0.001; // Strength of pull towards screen center (X and Y)
 
 // Constants for violent shake effect
-const MAX_VIOLENT_SHAKE_MAGNITUDE = 0.5; // Max shake magnitude when G/B are high and balanced.
+const MAX_VISUAL_SHAKE_OFFSET_PIXELS = 6; // Max visual shake offset in pixels when G/B are high and balanced.
 
 const BALL_BASE_COLOR_RGB = [220, 220, 230]; // A light, slightly cool base for the ball
 const GOOD_ZONE_INFLUENCE_X_CUTOFF = 0.7; // Good color influences ball up to 70% of screen width from left
@@ -40,11 +40,9 @@ function setup() {
   
   window.addEventListener('resize', () => {
     resizeCanvas(windowWidth, windowHeight);
-    // If a ball exists and goes out of bounds due to resize, might need to reposition or reset it.
-    // For now, just redraw. If ball position becomes an issue, address it here.
     if (ball) {
         ball.pos.x = constrain(ball.pos.x, BALL_RADIUS, width - BALL_RADIUS);
-        // ball.pos.y = constrain(ball.pos.y, BALL_RADIUS, height - BALL_RADIUS); // Or handle if it gets squished from bottom
+        // ball.pos.y = constrain(ball.pos.y, BALL_RADIUS, height - BALL_RADIUS); // Ensure ball y is also constrained if necessary
     }
     if (!isLooping()) redraw();
   });
@@ -154,9 +152,10 @@ function applyForcesToBall() {
   let intensityFactor = (gVal + bVal) / 200.0; // 0 when both 0, 1 when both 100
 
   // Only apply shake if there's some intensity to avoid tiny shakes when sliders are near zero
+  ball.visualShakeAmount = 0; // Initialize for this frame
   if (intensityFactor > 0.05) { // Threshold to prevent shake when sliders are very low
-      let currentShakeMagnitude = balanceFactor * intensityFactor * MAX_VIOLENT_SHAKE_MAGNITUDE;
-      ball.acc.add(p5.Vector.random2D().mult(currentShakeMagnitude));
+      let currentShakeAmount = balanceFactor * intensityFactor * MAX_VISUAL_SHAKE_OFFSET_PIXELS;
+      ball.visualShakeAmount = currentShakeAmount; // Store visual shake amount
   }
 }
 
@@ -191,16 +190,24 @@ function updateBallPhysics() {
 
 function drawBall() {
   if (!ball) return;
+
+  let displayX = ball.pos.x;
+  let displayY = ball.pos.y;
+
+  if (ball.visualShakeAmount && ball.visualShakeAmount > 0) {
+    let shakeEffect = p5.Vector.random2D().mult(ball.visualShakeAmount);
+    displayX += shakeEffect.x;
+    displayY += shakeEffect.y;
+  }
+
   fill(ball.color);
   stroke(20, 20, 30, 200); // Dark, slightly transparent stroke for visibility
   strokeWeight(1.5);
-  ellipse(ball.pos.x, ball.pos.y, ball.radius * 2, ball.radius * 2);
+  ellipse(displayX, displayY, ball.radius * 2, ball.radius * 2);
 }
 
 function draw() {
   background(BASE_CANVAS_COLOR[0], BASE_CANVAS_COLOR[1], BASE_CANVAS_COLOR[2]);
-
-  if (!gSlider || !bSlider) return;
 
   let gVal = gSlider.value();
   let bVal = bSlider.value();

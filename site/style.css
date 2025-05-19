@@ -30,49 +30,49 @@ html, body {
 
 /* Removed #concept-explanation styles */
 
+/* Reinstated #controls-overlay styles */
 #controls-overlay {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    padding: 15px 0px; /* Padding top/bottom, horizontal managed by content */
-    background-color: rgba(35, 39, 42, 0.85); /* Semi-transparent dark background */
+    padding: 15px 0px;
+    background-color: rgba(35, 39, 42, 0.85);
     box-shadow: 0 -2px 10px rgba(0,0,0,0.4);
-    z-index: 10; /* Controls on top of canvas */
+    z-index: 10;
     display: flex;
-    justify-content: center; /* Center slider groups */
+    justify-content: center;
     align-items: center;
-    gap: 30px; /* Space between slider groups */
-    flex-wrap: wrap; /* Allow controls to wrap on smaller screens */
+    gap: 30px;
+    flex-wrap: wrap;
 }
 
+/* Reinstated .slider-group and .control-group styles */
 .slider-group, .control-group {
     display: flex;
     flex-direction: column;
-    align-items: center; /* Center labels and sliders/buttons within the group */
-    min-width: 180px; /* Adjusted min-width */
-    margin-bottom: 10px; /* Add some margin for wrapped items */
+    align-items: center;
+    min-width: 180px;
+    margin-bottom: 10px;
 }
 
 .slider-group p { /* Slider labels */
     color: #DCDDDE;
     font-size: 0.9em;
-    margin: 0 0 8px 0; /* Margin below label */
+    margin: 0 0 8px 0;
     text-align: center;
 }
 
-.slider-group input[type="range"] {
-    width: 100%; /* Slider takes full width of its group */
-    max-width: 250px; /* Max width for a slider */
-    /* display: block; /* Default for input is inline-block or inline */
-    /* margin: 0 auto; /* Center if it was block */
+.slider-group input[type="range"] { /* Style for sliders within group if needed */
+    width: 100%; 
+    max-width: 250px; 
 }
 
-.control-group button {
+.control-group button { /* Styles for button within its group */
     padding: 10px 25px;
     border: none;
     border-radius: 5px;
-    background-color: #7289DA; /* Discord blurple */
+    background-color: #7289DA;
     color: white;
     cursor: pointer;
     font-size: 0.95rem;
@@ -82,7 +82,7 @@ html, body {
 }
 
 .control-group button:hover {
-    background-color: #677bc4; /* Slightly darker blurple on hover */
+    background-color: #677bc4;
 }
 
 .control-group button:active {
@@ -90,7 +90,7 @@ html, body {
     transform: translateY(1px);
 }
 
-/* Custom dark theme for range sliders (retained from previous, minor tweaks if needed) */
+/* Custom dark theme for range sliders (largely unchanged) */
 input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
