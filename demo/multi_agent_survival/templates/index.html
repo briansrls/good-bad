@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G-B Survivalists</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <!-- Include p5.js library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <!-- Optional: p5.sound.min.js if you plan to use sound -->
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script> -->
+</head>
+
+<body>
+  <div class="container">
+    <h1>G-B Survivalists</h1>
+    <div class="simulation-area">
+      <div id="canvas-container"></div>
+      <div class="controls">
+        <button id="reset-button">Reset</button>
+        <button id="step-button">Step</button>
+        <button id="run-button">Run</button>
+        <button id="pause-button" style="display:none;">Pause</button>
+        <div>
+          <label for="fps-slider">Speed (FPS):</label>
+          <input type="range" id="fps-slider" min="1" max="60" value="10">
+          <span id="fps-value">10</span>
+        </div>
+      </div>
+    </div>
+    <div class="info-panel">
+      <h2>Simulation Info</h2>
+      <p>Tick: <span id="tick-counter">0</span></p>
+      <p>Alive Agents: <span id="alive-agents-counter">0</span></p>
+      <!-- <div id="agent-health-bars-container"> -->
+      <!-- Health bars will be dynamically added here by sketch.js -->
+      <!-- </div> -->
+      <div id="selected-agent-info">
+        <h3>Selected Agent</h3>
+        <p>ID: <span id="agent-id">N/A</span></p>
+        <p>G-Score: <span id="agent-g-score">N/A</span></p>
+        <p>B-Score: <span id="agent-b-score">N/A</span></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='sketch.js') }}"></script>
+</body>
+
+</html>

@@ -1,0 +1,184 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f4f7f6;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.container {
+    width: 95%;
+    max-width: 1200px;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.simulation-area {
+    display: flex;
+    flex-wrap: wrap; /* Allow controls to wrap on smaller screens */
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+#canvas-container {
+    border: 1px solid #ddd;
+    /* Dimensions will be set by p5.js based on grid size */
+    /* Example fixed size if needed for layout before p5 loads:
+    min-width: 500px; 
+    min-height: 500px; */
+    display: flex; /* For centering canvas if it's smaller than container */
+    justify-content: center;
+    align-items: center;
+    margin-right: 20px; /* Space between canvas and controls */
+    flex-grow: 1; /* Allow canvas to take available space */
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px;
+    background-color: #ecf0f1;
+    border-radius: 5px;
+    min-width: 180px; /* Ensure controls have some width */
+}
+
+.controls button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    background-color: #3498db;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.controls button:hover {
+    background-color: #2980b9;
+}
+
+.controls label {
+    margin-top: 10px;
+    display: block;
+    font-size: 0.9em;
+}
+
+.controls input[type="range"] {
+    width: 100%;
+}
+
+.info-panel {
+    padding: 15px;
+    background-color: #ecf0f1;
+    border-radius: 5px;
+    display: flex; 
+    flex-direction: column; 
+    max-height: 500px; /* Max height for the entire info panel */
+    /* overflow-y: auto; /* Let child handle its own scroll primarily */
+}
+
+.info-panel h2,
+.info-panel > p { /* Targeting direct paragraph children like Tick and Alive Agents */
+    flex-shrink: 0; /* Prevent these from shrinking */
+    margin-bottom: 5px; /* Adjust spacing */
+}
+
+.info-panel h3 {
+    color: #2c3e50;
+    margin-top: 0;
+}
+
+#selected-agent-info {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px dashed #bdc3c7;
+    flex-shrink: 0; /* Prevent selected agent info from shrinking a lot */
+}
+
+/* Agent Health Bars Styling - REMOVED */
+/* #agent-health-bars-container {
+    margin-top: 10px; 
+    flex-shrink: 1; 
+    flex-grow: 1; 
+    overflow-y: auto; 
+    padding: 10px; 
+    background-color: #f0f0f0; 
+    border: 1px dashed #ccc; 
+    min-height: 100px; 
+    /* max-height: 250px; 
+}
+
+.agent-bar-entry {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 0.9em;
+}
+
+.agent-bar-entry:last-child {
+    border-bottom: none;
+}
+
+.agent-bar-id {
+    font-weight: bold;
+    margin-right: 8px;
+    display: inline-block;
+    min-width: 70px; 
+}
+
+.health-bar-g-container, .health-bar-b-container {
+    display: inline-block;
+    width: 100px; 
+    height: 12px;
+    background-color: #e0e0e0; 
+    border-radius: 3px;
+    margin-right: 5px;
+    position: relative; 
+    vertical-align: middle;
+}
+
+.health-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease-out; 
+}
+
+.health-bar-g {
+    background-color: #2ecc71; 
+}
+
+.health-bar-b {
+    background-color: #e74c3c; 
+}
+
+.score-text {
+    display: inline-block;
+    min-width: 50px; 
+    font-size: 0.9em;
+    vertical-align: middle;
+} */
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .simulation-area {
+        flex-direction: column;
+    }
+    #canvas-container {
+        margin-right: 0;
+        margin-bottom: 20px;
+    }
+    .controls {
+        width: 100%;
+    }
+} 

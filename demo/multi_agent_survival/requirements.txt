@@ -1,0 +1,2 @@
+pygame==2.6.0
+Flask>=2.0.0 # Using a general version, can be more specific if needed 
