@@ -2,6 +2,7 @@ import torch
 import torch.optim as optim
 import numpy as np
 import os
+import matplotlib.pyplot as plt # Import for live plotting
 
 # Assuming these modules are in the same directory or accessible via PYTHONPATH
 from .stimulus_generator import generate_simple_shape, generate_noise_field, generate_line, generate_squircle, generate_star, generate_hexagon, generate_threat_shape
@@ -9,7 +10,7 @@ from .neural_core import L1Network, L1ENetwork # GBOutputLayer is used internall
 from .gb_valuator import GBValuatorLearner
 from .survival_mechanics import SurvivalMechanicsEngine
 from .recruitment import RecruitmentManager
-from .visualization import plot_full_experiment_visualization
+from .visualization import plot_full_experiment_visualization as update_live_plot
 
 class TrainingOrchestrator:
     """
@@ -77,6 +78,13 @@ class TrainingOrchestrator:
         # Structure: self.probe_gb_log[probe_name][category_name]['b'] = [(cycle, value), ...]
         self.probe_gb_log = {name: {cat_name: {'g': [], 'b': []} for cat_name in self.l1_category_map.keys()} 
                              for name in self.probe_stimuli.keys()}
+
+        # --- Setup for Live Plotting ---
+        plt.ion() # Turn on interactive mode
+        # New layout: 4 rows, 3 columns
+        self.fig, self.axs = plt.subplots(4, 3, figsize=(24, 20), squeeze=False) # Taller: 20
+        self.fig.suptitle("Live Experiment Visualization", fontsize=16)
+        # --- End Setup for Live Plotting ---
 
     def _initialize_probe_stimuli(self):
         """Generates and stores a fixed set of probe stimuli."""
@@ -149,6 +157,26 @@ class TrainingOrchestrator:
         
         if original_mode_is_train:
             self.l1_network.train() # Revert to original training mode
+
+    def _trigger_live_plot_update(self):
+        l1_conv1_weights = self.l1_network.conv1.weight.data.cpu().clone()
+        l1_conv2_weights = self.l1_network.conv2.weight.data.cpu().clone()
+        current_stimuli_sample = getattr(self, 'current_batch_stimuli_for_plot', None)
+        current_l1_gb_outputs_batch_avg = getattr(self, 'current_l1_gb_outputs_batch_avg_for_plot', None)
+
+        update_live_plot(
+            fig=self.fig,
+            axs=self.axs,
+            sp_history=self.survival_engine.history,
+            phase1_loss_log=self.phase1_loss_log,
+            phase2_loss_log=self.phase2_loss_log,
+            probe_gb_log=self.probe_gb_log,
+            l1_category_map=self.l1_category_map,
+            l1_conv1_weights=l1_conv1_weights,
+            l1_conv2_weights=l1_conv2_weights,
+            current_stimuli_sample=current_stimuli_sample,
+            current_l1_gb_outputs_batch_avg=current_l1_gb_outputs_batch_avg # Pass current batch L1 G-B avg
+        )
 
     def _get_stimulus_and_hint_phase1(self, batch_size):
         """ Generates a batch of stimuli and corresponding G-B hints for Phase 1. """
@@ -245,12 +273,16 @@ class TrainingOrchestrator:
 
             # Get stimuli and hints
             stimuli, target_gbs_hint, event_types_true = self._get_stimulus_and_hint_phase1(batch_size)
-            
-            # Forward pass (L1 only)
+            self.current_batch_stimuli_for_plot = stimuli.cpu().clone() 
+
             self.optimizer_l1.zero_grad()
-            gb_outputs_l1 = self.l1_network(stimuli)
-            
-            # Calculate losses
+            gb_outputs_l1 = self.l1_network(stimuli) # This is the batch output
+            # Store average G-B for this batch for plotting
+            if gb_outputs_l1 is not None:
+                self.current_l1_gb_outputs_batch_avg_for_plot = gb_outputs_l1.mean(dim=0).detach().cpu().clone()
+            else:
+                self.current_l1_gb_outputs_batch_avg_for_plot = None
+
             hint_loss = self.gb_learner.calculate_hint_loss(gb_outputs_l1, target_gbs_hint)
             
             # For Phase 1, SP changes are simpler, tied to hints primarily
@@ -285,6 +317,7 @@ class TrainingOrchestrator:
                 # _log_probe_gb_values will set it to eval and then back to its original mode.
                 self.l1_network.train() # Explicitly set to train before calling log, which sets to eval temporarily
                 self._log_probe_gb_values() 
+                self._trigger_live_plot_update() # Call live plot update
         
         print("--- Phase 1 Finished ---")
 
@@ -311,6 +344,14 @@ class TrainingOrchestrator:
             if stimuli is None: # Temp: use phase 1 stimuli for testing flow
                  stimuli, _, _ = self._get_stimulus_and_hint_phase1(batch_size)
 
+            self.current_batch_stimuli_for_plot = stimuli.cpu().clone()
+            gb_outputs_l1 = self.l1_network(stimuli)
+            final_gb_outputs = gb_outputs_l1
+            if final_gb_outputs is not None:
+                 self.current_l1_gb_outputs_batch_avg_for_plot = final_gb_outputs.mean(dim=0).detach().cpu().clone()
+            else:
+                 self.current_l1_gb_outputs_batch_avg_for_plot = None
+
             # --- Main Agent Forward Pass & Decision Making (L1 + L1Es) ---
             # This part needs careful design: how L1 and L1-Es interact.
             # Possibilities: 
@@ -319,15 +360,6 @@ class TrainingOrchestrator:
             # 3. L1-E output overrides/modulates L1 for specific stimuli it handles.
             # For now, let L1 always process. If L1-Es exist, they might also process or be chosen.
             
-            gb_outputs_l1 = self.l1_network(stimuli)
-            final_gb_outputs = gb_outputs_l1 # Default to L1 output
-            active_network_for_loss = self.l1_network # Which network parameters to update
-            active_optimizer = self.optimizer_l1
-            
-            # TODO: If L1-Es exist, how do they contribute or take over?
-            # This is a placeholder for a more complex integration strategy.
-            # For now, let's assume L1-E modules are trained on inputs that L1 found dissonant.
-
             # --- Recruitment Check (based on L1's output for now) ---
             # In a more complex system, dissonance could arise from L1-E too.
             triggered_categories = self.recruitment_manager.check_dissonance_and_trigger(gb_outputs_l1, stimuli)
@@ -392,6 +424,7 @@ class TrainingOrchestrator:
                 # _log_probe_gb_values logs L1's response. L1 is already in eval mode for Phase 2.
                 # L1-Es are in train mode, but _log_probe_gb_values only uses self.l1_network.
                 self._log_probe_gb_values() 
+                self._trigger_live_plot_update() # Call live plot update
                 # No need to change L1 mode here as it should stay eval.
                 # Ensure L1-Es are still in train mode if _log_probe_gb_values affected them (it shouldn't).
                 # self.l1_network.eval() # Already in eval
@@ -400,34 +433,45 @@ class TrainingOrchestrator:
         print("--- Phase 2 Finished ---")
 
     def run_experiment(self):
+        # Initial plot draw, could be empty or with initial state if desired
+        # self._trigger_live_plot_update() 
         self.run_phase1()
         if self.survival_engine.alive():
             self.run_phase2()
         else:
             print("Agent did not survive Phase 1. Skipping Phase 2.")
         
-        print("\n--- Generating Plots ---")
+        # Final plot update and save
+        print("\n--- Generating Final Plot ---")
         plot_dir = self.config.get("plot_directory", "plots")
-        show_plots_after_run = self.config.get("show_plots_after_run", True)
-        
-        # Define a single path for the combined plot
         full_plot_filename = self.config.get("full_plot_filename", "full_experiment_visualization.png")
         full_plot_path = os.path.join(plot_dir, full_plot_filename)
+        
+        l1_conv1_weights_final = self.l1_network.conv1.weight.data.cpu().clone()
+        l1_conv2_weights_final = self.l1_network.conv2.weight.data.cpu().clone()
+        current_stimuli_sample_final = getattr(self, 'current_batch_stimuli_for_plot', None)
+        current_l1_gb_outputs_batch_avg_final = getattr(self, 'current_l1_gb_outputs_batch_avg_for_plot', None)
 
-        # Call the new comprehensive plotting function
-        plot_full_experiment_visualization(
+        update_live_plot(
+            fig=self.fig,
+            axs=self.axs,
             sp_history=self.survival_engine.history,
             phase1_loss_log=self.phase1_loss_log,
             phase2_loss_log=self.phase2_loss_log,
             probe_gb_log=self.probe_gb_log,
             l1_category_map=self.l1_category_map,
-            save_path=full_plot_path,
-            show_plot=show_plots_after_run
+            l1_conv1_weights=l1_conv1_weights_final,
+            l1_conv2_weights=l1_conv2_weights_final, 
+            current_stimuli_sample=current_stimuli_sample_final, 
+            current_l1_gb_outputs_batch_avg=current_l1_gb_outputs_batch_avg_final,
+            save_path_final=full_plot_path 
         )
-
-        print("--- Plotting Complete ---")
+        print("--- Plotting Complete. Final plot saved. ---")
         
+        plt.ioff() # Turn off interactive mode
         print(f"\nExperiment Finished. Final SP: {self.survival_engine.get_sp():.2f}, Alive: {self.survival_engine.alive()}, L1-E modules: {len(self.l1e_networks)}")
+        print("Close the plot window to exit.")
+        plt.show(block=True) # Keep the final plot displayed
 
 # Example Configuration (can be loaded from YAML or defined in main.py)
 DEFAULT_CONFIG = {
